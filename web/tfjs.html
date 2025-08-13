@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>FitnessApp • TF.js (Client‑side)</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.14.0/dist/tf-backend-webgl.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@latest/dist/pose-detection.min.js"></script>
@@ -18,8 +18,8 @@
         </div>
       </div>
       <nav class="tabs">
-        <a class="tab" href="/">Server</a>
-        <a class="tab active" href="/tfjs">Client</a>
+        <a class="tab" href="./index.html">Client (Alt)</a>
+        <a class="tab active" href="./tfjs.html">Client (TF.js)</a>
       </nav>
     </header>
     <main class="app-main">
@@ -64,7 +64,7 @@
       </aside>
     </main>
     <footer class="app-footer"><small>Client‑side inference. For mobile, use HTTPS.</small></footer>
-    <script type="module" src="/static/tfjs.js"></script>
+    <script type="module" src="./tfjs.js"></script>
   </body>
  </html>
 
