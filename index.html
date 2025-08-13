@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FitnessApp • MoveNet (TFLite)</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%2366e0a3'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+    <!-- TensorFlow.js core -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+    <!-- WebGL backend for TFJS (fallback path) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.14.0/dist/tf-backend-webgl.min.js"></script>
+    <!-- TensorFlow.js TFLite runtime (UMD) -->
+    <script src="./vendor/tf-tflite.min.js"></script>
+    <!-- Pose Detection fallback (TFJS GraphModel MoveNet, UMD) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@3.5.0/dist/pose-detection.min.js"></script>
+    <meta http-equiv="origin-trial" content="">
+    
+</head>
+<body>
+    <header class="app-header">
+        <h1>FitnessApp</h1>
+        <p class="subtitle">MoveNet (TensorFlow Lite) • Live Pose & Tips</p>
+    </header>
+
+    <main class="app-main">
+        <div class="video-panel">
+            <div class="video-wrapper">
+                <video id="video" playsinline muted autoplay></video>
+                <canvas id="overlay"></canvas>
+                <div id="loading" class="loading">Loading model…</div>
+            </div>
+            <div class="controls">
+                <button id="startBtn">Start Camera</button>
+                <button id="flipBtn">Flip Camera</button>
+                <label class="threshold">
+                    Confidence: <input id="confRange" type="range" min="0" max="1" step="0.05" value="0.3" />
+                    <span id="confVal">0.30</span>
+                </label>
+            </div>
+        </div>
+        <aside class="info-panel">
+            <div class="status">
+                <div><strong>Model:</strong> MoveNet Lightning (TFLite)</div>
+                <div><strong>Resolution:</strong> 192×192</div>
+                <div id="fps"><strong>FPS:</strong> –</div>
+            </div>
+            <div class="tips">
+                <h3>Live Tips</h3>
+                <ul id="tipsList"></ul>
+            </div>
+        </aside>
+    </main>
+
+    <footer class="app-footer">
+        <small>For best results: bright light, full-body in frame. Mobile requires HTTPS to access camera from another device.</small>
+    </footer>
+
+    <script src="./app.js" type="module"></script>
+</body>
+<!--
+Notes:
+ - On desktop, serving via http://localhost is enough for camera.
+ - On phone, you must use HTTPS (see README notes in app.js comments).
+-->
+</html>
+
+
