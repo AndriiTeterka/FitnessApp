@@ -80,7 +80,7 @@ function resultsToKeypoints(res){
   return lm.map((p,i)=>({
     x:p.x*canvas.width,
     y:p.y*canvas.height,
-    score:(p.presence ?? p.visibility ?? 0),
+    score:(p.visibility ?? p.presence ?? 0),
     name:LANDMARK_NAMES[i]
   }));
 }
