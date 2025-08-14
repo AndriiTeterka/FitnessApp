@@ -1,8 +1,9 @@
 // Web Worker executing MediaPipe PoseLandmarker inference.
-import {
-  PoseLandmarker,
-  FilesetResolver,
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2";
+// Use classic worker script with importScripts so MediaPipe can internally load
+// additional resources using importScripts as well.
+importScripts("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2");
+const visionNS = self.tasksVision || self;
+const { PoseLandmarker, FilesetResolver } = visionNS;
 
 let landmarker = null;
 let options = null;

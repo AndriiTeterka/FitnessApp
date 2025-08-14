@@ -182,7 +182,8 @@ window.addEventListener("orientationchange", applyTransforms);
 
 async function initWorker(modelName, opts) {
   if (worker) worker.terminate();
-  worker = new Worker("./pose_worker.js", { type: "module" });
+  // Classic worker script loads MediaPipe via importScripts.
+  worker = new Worker("./pose_worker.js");
   workerReady = false;
   worker.onmessage = (e) => {
     const { type } = e.data;
