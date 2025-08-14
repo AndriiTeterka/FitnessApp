@@ -330,9 +330,10 @@ function angleDeg(a, b, c) {
 async function loop() {
   if (!running) return;
   try {
-    await landmarker.detectAsync(video, performance.now());
+    // In LIVE_STREAM mode, detectForVideo will trigger the resultCallback
+    landmarker.detectForVideo(video, performance.now());
   } catch (e) {
-    console.warn("detectAsync failed; resetting landmarker", e);
+    console.warn("detectForVideo failed; resetting landmarker", e);
     try {
       await createLandmarker();
     } catch (_) {}
