@@ -1,4 +1,4 @@
-importScripts("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2");
+importScripts("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/vision_bundle.js");
 
 let landmarker = null;
 let running = false;
