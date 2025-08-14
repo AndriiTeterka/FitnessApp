@@ -1,7 +1,9 @@
-import {
-  FilesetResolver,
-  PoseLandmarker,
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2";
+/* global vision */
+importScripts(
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/vision_bundle.js"
+);
+
+const { FilesetResolver, PoseLandmarker } = vision;
 
 let landmarker = null;
 let running = false;
@@ -16,10 +18,10 @@ self.onmessage = async (e) => {
         ? "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
         : "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task";
     try {
-      const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm",
+      const fileset = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm"
       );
-      landmarker = await PoseLandmarker.createFromOptions(vision, {
+      landmarker = await PoseLandmarker.createFromOptions(fileset, {
         baseOptions: { modelAssetPath: model, delegate: "GPU" },
         ...opts,
       });

@@ -172,7 +172,7 @@ window.addEventListener("orientationchange", applyTransforms);
 
 async function createWorker(model) {
   if (worker) worker.terminate();
-  worker = new Worker("./pose_worker.js", { type: "module" });
+  worker = new Worker("./pose_worker.js");
   worker.onmessage = handleWorkerMessage;
   worker.postMessage({ type: "init", options: currentOptions, model });
   chipModel.innerHTML = `Model<strong>${model === "lite" ? "Lite" : "Heavy"}</strong>`;
