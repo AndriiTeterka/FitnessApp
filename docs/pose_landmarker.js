@@ -234,6 +234,11 @@ function resultsToKeypoints(res) {
 
 function handleResult(res) {
   const keypoints = resultsToKeypoints(res);
+  if (res.segmentationMasks) {
+    for (const m of res.segmentationMasks) {
+      if (m.close) m.close();
+    }
+  }
   if (keypoints) {
     drawKeypointsAndSkeleton(keypoints);
     setTips(keypoints);
