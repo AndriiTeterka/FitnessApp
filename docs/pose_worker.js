@@ -4,9 +4,7 @@
 // Expose CommonJS-style globals expected by the bundle.
 self.exports = {};
 const module = { exports: self.exports };
-importScripts(
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/vision_bundle.cjs",
-);
+importScripts("./vision_bundle.js");
 const { PoseLandmarker, FilesetResolver } = module.exports;
 
 let landmarker = null;
