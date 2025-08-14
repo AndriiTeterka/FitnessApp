@@ -1,33 +1,36 @@
-// Load the MediaPipe Tasks vision bundle in the worker context. Some CDN
-// paths such as `vision_bundle.js` can fail to resolve depending on caching
-// or CDN rewrites, so import the package root which forwards to the correct
-// bundle entry.
-try {
-  importScripts("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2");
-} catch (err) {
-  // Forward any load errors to the main thread for visibility.
-  self.postMessage({ type: "error", error: err.message });
-}
-
 let landmarker = null;
 let running = false;
+let tasksLoaded = false;
 
 self.onmessage = async (e) => {
   const { type } = e.data;
   if (type === "init") {
     if (landmarker) landmarker.close();
     const opts = e.data.options || {};
-    const model = e.data.model === "lite" ?
-      "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task" :
-      "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task";
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm",
-    );
-    landmarker = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: model, delegate: "GPU" },
-      ...opts,
-    });
-    running = true;
+    const model = e.data.model === "lite"
+      ? "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+      : "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task";
+    if (!tasksLoaded) {
+      try {
+        importScripts("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/vision_bundle.js");
+        tasksLoaded = true;
+      } catch (err) {
+        self.postMessage({ type: "error", error: `Failed to load vision bundle: ${err.message}` });
+        return;
+      }
+    }
+    try {
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm",
+      );
+      landmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: model, delegate: "GPU" },
+        ...opts,
+      });
+      running = true;
+    } catch (err) {
+      self.postMessage({ type: "error", error: err.message });
+    }
   } else if (type === "frame" && running && landmarker) {
     const bitmap = e.data.image;
     const ts = e.data.ts;

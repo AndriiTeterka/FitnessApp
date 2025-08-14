@@ -182,6 +182,7 @@ async function createWorker(model) {
 function handleWorkerMessage(e) {
   if (e.data.type === "error") {
     console.error("Worker failed to load vision bundle:", e.data.error);
+    running = false;
     return;
   }
   if (e.data.type !== "result") return;
