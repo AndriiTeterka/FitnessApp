@@ -8,12 +8,13 @@ const modelTypeSel=document.getElementById('modelType');
 const fpsEl=document.getElementById('fps');
 const tipsList=document.getElementById('tipsList');
 const chipModel=document.getElementById('chipModel');
-const screenshotBtn=document.getElementById('screenshotBtn');
+const flipBtn=document.getElementById('flipBtn');
 
 let detector=null; let running=false; let lastTs=performance.now(); let frames=0;
+let currentStream=null; let usingFrontCamera=true;
 confRange.addEventListener('input',()=>confVal.textContent=Number(confRange.value).toFixed(2));
 startBtn.addEventListener('click',async()=>{ await setupBackend(); await createDetector(); await startCamera(); running=true; requestAnimationFrame(loop); });
-screenshotBtn.addEventListener('click',()=>{ const off=document.createElement('canvas'); off.width=video.videoWidth; off.height=video.videoHeight; off.getContext('2d').drawImage(video,0,0); const url=off.toDataURL('image/png'); const a=document.createElement('a'); a.href=url; a.download='fitnessapp_frame.png'; a.click();});
+flipBtn.addEventListener('click',async()=>{ usingFrontCamera=!usingFrontCamera; if(running){ await startCamera(); await createDetector(); } else { applyMirror(); } });
 
 async function setupBackend(){ await tf.setBackend('webgl'); await tf.ready(); }
 async function createDetector(){
@@ -28,7 +29,7 @@ async function createDetector(){
       solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404',
       modelType: type,
       enableSmoothing: true,
-      selfieMode: true,
+      selfieMode: usingFrontCamera,
       minPoseDetectionConfidence: 0.5,
       minPosePresenceConfidence: 0.5,
       minTrackingConfidence: 0.5
@@ -42,7 +43,15 @@ async function createDetector(){
     });
   }
 }
-async function startCamera(){ const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:false}); video.srcObject=stream; await video.play(); canvas.width=video.videoWidth; canvas.height=video.videoHeight; }
+async function startCamera(){
+  if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
+  const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode: usingFrontCamera?'user':'environment'},audio:false});
+  currentStream=stream; video.srcObject=stream; await video.play(); canvas.width=video.videoWidth; canvas.height=video.videoHeight; applyMirror(); }
+
+function applyMirror(){
+  if(usingFrontCamera){ video.style.transform='scaleX(-1)'; canvas.style.transform='scaleX(-1)'; }
+  else{ video.style.transform=''; canvas.style.transform=''; }
+}
 
 function drawKeypointsAndSkeleton(kp,thr){
   const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
