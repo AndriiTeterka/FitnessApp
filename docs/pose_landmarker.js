@@ -302,9 +302,9 @@ function processLandmarks(res, ts) {
   const out = [];
   lm.forEach((p, i) => {
     const name = LANDMARK_NAMES[i];
-    const vis = p.visibility ?? 0;
-    const pres = p.presence ?? 0;
-    if (vis >= 0.6 && pres >= 0.6) {
+    const vis = p.visibility ?? 1;
+    const pres = p.presence ?? 1;
+    if (vis >= 0.5 && pres >= 0.5) {
       const x = p.x * canvas.width;
       const y = p.y * canvas.height;
       lastValid[name] = { x, y, ts };
