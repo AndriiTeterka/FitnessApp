@@ -4,49 +4,52 @@ const ctx=canvas.getContext('2d');
 const startBtn=document.getElementById('startBtn');
 const confRange=document.getElementById('confRange');
 const confVal=document.getElementById('confVal');
-const modelTypeSel=document.getElementById('modelType');
 const fpsEl=document.getElementById('fps');
 const tipsList=document.getElementById('tipsList');
 const chipModel=document.getElementById('chipModel');
 const flipBtn=document.getElementById('flipBtn');
+const cameraSel=document.getElementById('cameraSelect');
+const cameraWrapper=document.getElementById('cameraWrapper');
 
 let detector=null; let running=false; let lastTs=performance.now(); let frames=0;
-let currentStream=null; let usingFrontCamera=true;
+let currentStream=null; const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent); let usingFrontCamera=true;
+if(!isMobile){ flipBtn.style.display='none'; cameraWrapper.style.display=''; populateCameras(); usingFrontCamera=false; }
+else{ cameraWrapper.style.display='none'; }
 confRange.addEventListener('input',()=>confVal.textContent=Number(confRange.value).toFixed(2));
 startBtn.addEventListener('click',async()=>{ await setupBackend(); await createDetector(); await startCamera(); running=true; requestAnimationFrame(loop); });
 flipBtn.addEventListener('click',async()=>{ usingFrontCamera=!usingFrontCamera; if(running){ await startCamera(); await createDetector(); } else { applyMirror(); } });
+cameraSel.addEventListener('change',async()=>{ if(running) await startCamera(); });
 
 async function setupBackend(){ await tf.setBackend('webgl'); await tf.ready(); }
 async function createDetector(){
   const pd=window.poseDetection; if(!pd){ alert('pose-detection failed to load.'); throw new Error('poseDetection not available'); }
   const m=pd.SupportedModels.BlazePose;
-  const type=modelTypeSel.value; // 'lite' | 'full' | 'heavy'
-  chipModel.innerHTML='Model<strong>'+type.charAt(0).toUpperCase()+type.slice(1)+'</strong>';
+  const type='heavy';
+  chipModel.innerHTML='Model<strong>Heavy</strong>';
   // Try MediaPipe runtime first; if it fails, fallback to TFJS runtime
   try{
-    detector=await pd.createDetector(m,{
-      runtime: 'mediapipe',
-      solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404',
-      modelType: type,
-      enableSmoothing: true,
-      selfieMode: usingFrontCamera,
-      minPoseDetectionConfidence: 0.5,
-      minPosePresenceConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
+    detector=await pd.createDetector(m,{ runtime:'mediapipe', solutionPath:'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404', modelType:type, enableSmoothing:true, selfieMode:usingFrontCamera, minPoseDetectionConfidence:0.5, minPosePresenceConfidence:0.5, minTrackingConfidence:0.5 });
   }catch(e){
     console.warn('Mediapipe runtime failed, falling back to TFJS', e);
-    detector=await pd.createDetector(m,{
-      runtime: 'tfjs',
-      modelType: type,
-      enableSmoothing: true
-    });
+    detector=await pd.createDetector(m,{ runtime:'tfjs', modelType:type, enableSmoothing:true, selfieMode:usingFrontCamera });
   }
+}
+async function populateCameras(){
+  const devices=await navigator.mediaDevices.enumerateDevices();
+  const vids=devices.filter(d=>d.kind==='videoinput');
+  cameraSel.innerHTML='';
+  vids.forEach((d,i)=>{ const o=document.createElement('option'); o.value=d.deviceId; o.text=d.label||`Camera ${i+1}`; cameraSel.appendChild(o); });
 }
 async function startCamera(){
   if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
-  const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode: usingFrontCamera?'user':'environment'},audio:false});
-  currentStream=stream; video.srcObject=stream; await video.play(); canvas.width=video.videoWidth; canvas.height=video.videoHeight; applyMirror(); }
+  const constraints={video:{width:640,height:480},audio:false};
+  if(isMobile){ constraints.video.facingMode=usingFrontCamera?'user':'environment'; }
+  else if(cameraSel.value){ constraints.video.deviceId={exact:cameraSel.value}; }
+  const stream=await navigator.mediaDevices.getUserMedia(constraints);
+  currentStream=stream;
+  const facing=stream.getVideoTracks()[0].getSettings().facingMode;
+  usingFrontCamera=!facing || facing==='user' || facing==='front';
+  video.srcObject=stream; await video.play(); canvas.width=video.videoWidth; canvas.height=video.videoHeight; applyMirror(); }
 
 function applyMirror(){
   if(usingFrontCamera){ video.style.transform='scaleX(-1)'; canvas.style.transform='scaleX(-1)'; }
