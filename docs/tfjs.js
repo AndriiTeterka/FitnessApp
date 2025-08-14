@@ -27,7 +27,6 @@ async function createDetector(){
   const m=pd.SupportedModels.BlazePose;
   const type=modelType;
   chipModel.innerHTML='Model<strong>'+(type==='lite'?'Lite':type==='full'?'Full':'Heavy')+'</strong>';
-  // Try MediaPipe runtime first; if it fails, fallback to TFJS runtime
   try{
     detector=await pd.createDetector(m,{ runtime:'mediapipe', solutionPath:'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404', modelType:type, enableSmoothing:true, selfieMode:usingFrontCamera, minPoseDetectionConfidence:0.5, minPosePresenceConfidence:0.5, minTrackingConfidence:0.5 });
   }catch(e){
