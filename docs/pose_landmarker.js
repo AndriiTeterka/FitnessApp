@@ -31,9 +31,20 @@ cameraSel.addEventListener('change',async()=>{ if(running){ running=false; if(la
 async function createLandmarker(){
   const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm");
   const modelUrl="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
-  const modelResp=await fetch(modelUrl);
-  const modelData=await modelResp.arrayBuffer();
-  landmarker=await PoseLandmarker.createFromOptions(vision,{ baseOptions:{ modelAssetBuffer:modelData, delegate:"GPU" }, runningMode:"VIDEO", numPoses:1, minPoseDetectionConfidence:0.3, minPosePresenceConfidence:0.3, minTrackingConfidence:0.3 });
+  const modelResp = await fetch(modelUrl);
+  const modelData = await modelResp.arrayBuffer();
+  const modelBytes = new Uint8Array(modelData);
+  landmarker = await PoseLandmarker.createFromOptions(
+    vision,
+    {
+      baseOptions: { modelAssetBuffer: modelBytes, delegate: "GPU" },
+      runningMode: "VIDEO",
+      numPoses: 1,
+      minPoseDetectionConfidence: 0.3,
+      minPosePresenceConfidence: 0.3,
+      minTrackingConfidence: 0.3,
+    }
+  );
   chipModel.innerHTML='Model<strong>Lite</strong>';
 }
 async function populateCameras(){ const devices=await navigator.mediaDevices.enumerateDevices(); const vids=devices.filter(d=>d.kind==='videoinput'); cameraSel.innerHTML=''; vids.forEach((d,i)=>{ const o=document.createElement('option'); o.value=d.deviceId; o.text=d.label||`Camera ${i+1}`; cameraSel.appendChild(o); }); }
