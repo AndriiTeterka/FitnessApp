@@ -158,7 +158,6 @@ async function createLandmarker() {
     minPosePresenceConfidence: 0.3,
     minTrackingConfidence: 0.3,
     outputSegmentationMasks: true,
-    resultCallback: handleResult,
   });
   chipModel.innerHTML = "Model<strong>Heavy</strong>";
 }
@@ -335,8 +334,9 @@ function angleDeg(a, b, c) {
 async function loop() {
   if (!running) return;
   try {
-    // In LIVE_STREAM mode, detectForVideo will trigger the resultCallback
-    landmarker.detectForVideo(video, performance.now());
+    // Process the current video frame and draw results immediately
+    const res = landmarker.detectForVideo(video, performance.now());
+    if (res) handleResult(res);
   } catch (e) {
     console.warn("detectForVideo failed; resetting landmarker", e);
     try {
