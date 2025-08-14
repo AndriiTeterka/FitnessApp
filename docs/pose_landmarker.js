@@ -22,7 +22,7 @@ const DEFAULT_OPTIONS = {
   minPoseDetectionConfidence: 0.6,
   minPosePresenceConfidence: 0.75,
   minTrackingConfidence: 0.7,
-  outputSegmentationMasks: false,
+  outputSegmentationMasks: false, // masks are expensive on mobile
 };
 
 // Additional profiles to tweak runtime behaviour when needed.
@@ -55,6 +55,17 @@ const offscreen = new OffscreenCanvas(1, 1);
 let lastSent = 0;
 let minFrameInterval = 0; // adaptive frame drop when latency is high
 let lowScoreStart = null;
+const RES_LEVELS = isMobile
+  ? [
+      { w: 640, h: 360 },
+      { w: 512, h: 288 },
+    ]
+  : [];
+let resIndex = 0;
+let currentFps = 0;
+let lowFpsSince = null;
+let lowFpsModelSince = null;
+let frameToggle = false;
 
 // ---------- Landmark smoothing & gating ---------------------------------------
 
@@ -241,9 +252,20 @@ async function startCamera() {
   await video.play();
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  offscreen.width = video.videoWidth;
-  offscreen.height = video.videoHeight;
+  setOffscreenSize();
   applyTransforms();
+}
+
+function setOffscreenSize() {
+  if (isMobile && RES_LEVELS.length) {
+    const { w, h } = RES_LEVELS[resIndex];
+    const rotate = video.videoWidth < video.videoHeight;
+    offscreen.width = rotate ? h : w;
+    offscreen.height = rotate ? w : h;
+  } else {
+    offscreen.width = video.videoWidth;
+    offscreen.height = video.videoHeight;
+  }
 }
 
 function applyTransforms() {
@@ -276,6 +298,20 @@ function loop() {
   if (!running) return;
   const now = performance.now();
   if (workerReady && !workerBusy && now - lastSent >= minFrameInterval) {
+    if (
+      isMobile &&
+      RES_LEVELS.length &&
+      currentFps < 25 &&
+      resIndex === RES_LEVELS.length - 1
+    ) {
+      frameToggle = !frameToggle;
+      if (frameToggle) {
+        requestAnimationFrame(loop);
+        return;
+      }
+    } else {
+      frameToggle = false;
+    }
     const ctxOff = offscreen.getContext("2d");
     ctxOff.drawImage(video, 0, 0, offscreen.width, offscreen.height);
     const bitmap = offscreen.transferToImageBitmap();
@@ -446,9 +482,43 @@ function updateFps() {
   const now = performance.now();
   if (now - lastFpsTs >= 1000) {
     const fps = frames / ((now - lastFpsTs) / 1000);
+    currentFps = fps;
     fpsEl.innerHTML = `<strong>FPS:</strong> ${fps.toFixed(1)}`;
     frames = 0;
     lastFpsTs = now;
+    maybeReduceResolution(fps);
+    maybeSwitchToLite(fps);
+  }
+}
+
+function maybeReduceResolution(fps) {
+  if (!isMobile || !RES_LEVELS.length) return;
+  if (fps < 25) {
+    if (!lowFpsSince) lowFpsSince = performance.now();
+    if (
+      performance.now() - lowFpsSince > 1000 &&
+      resIndex < RES_LEVELS.length - 1
+    ) {
+      resIndex++;
+      setOffscreenSize();
+      lowFpsSince = null;
+    }
+  } else {
+    lowFpsSince = null;
+  }
+}
+
+function maybeSwitchToLite(fps) {
+  if (model === "lite") return;
+  if (fps < 20) {
+    if (!lowFpsModelSince) lowFpsModelSince = performance.now();
+    if (performance.now() - lowFpsModelSince > 2000) {
+      model = "lite";
+      initWorker("lite", { ...DEFAULT_OPTIONS, ...PROFILES.budget });
+      lowFpsModelSince = null;
+    }
+  } else {
+    lowFpsModelSince = null;
   }
 }
 
