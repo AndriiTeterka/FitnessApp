@@ -24,6 +24,7 @@ let frames = 0;
 let currentStream = null;
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 let usingFrontCamera = true;
+const landmarkHistory = [];
 const LANDMARK_NAMES = [
   "nose",
   "left_eye_inner",
@@ -127,7 +128,7 @@ flipBtn.addEventListener("click", async () => {
     running = true;
     requestAnimationFrame(loop);
   } else {
-    applyMirror();
+    applyTransforms();
   }
 });
 cameraSel.addEventListener("change", async () => {
@@ -141,22 +142,25 @@ cameraSel.addEventListener("change", async () => {
     requestAnimationFrame(loop);
   }
 });
+window.addEventListener("orientationchange", applyTransforms);
 
 async function createLandmarker() {
   const vision = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm",
   );
   const modelUrl =
-    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task";
   landmarker = await PoseLandmarker.createFromOptions(vision, {
     baseOptions: { modelAssetPath: modelUrl, delegate: "GPU" },
-    runningMode: "VIDEO",
+    runningMode: "LIVE_STREAM",
     numPoses: 1,
     minPoseDetectionConfidence: 0.3,
     minPosePresenceConfidence: 0.3,
     minTrackingConfidence: 0.3,
+    outputSegmentationMasks: true,
+    resultCallback: handleResult,
   });
-  chipModel.innerHTML = "Model<strong>Lite</strong>";
+  chipModel.innerHTML = "Model<strong>Heavy</strong>";
 }
 async function populateCameras() {
   const devices = await navigator.mediaDevices.enumerateDevices();
@@ -176,11 +180,11 @@ async function startCamera() {
   const constraints = { video: {}, audio: false };
   if (isMobile) {
     constraints.video.facingMode = usingFrontCamera ? "user" : "environment";
-    constraints.video.width = { ideal: 320 };
-    constraints.video.height = { ideal: 240 };
+    constraints.video.width = { ideal: 640 };
+    constraints.video.height = { ideal: 480 };
   } else {
-    constraints.video.width = 640;
-    constraints.video.height = 480;
+    constraints.video.width = { ideal: 1280 };
+    constraints.video.height = { ideal: 720 };
     if (cameraSel.value) {
       constraints.video.deviceId = { exact: cameraSel.value };
     }
@@ -199,29 +203,26 @@ async function startCamera() {
   await video.play();
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  applyMirror();
+  applyTransforms();
 }
-function applyMirror() {
-  if (usingFrontCamera) {
-    video.style.transform = "scaleX(-1)";
-    canvas.style.transform = "scaleX(-1)";
-  } else {
-    video.style.transform = "";
-    canvas.style.transform = "";
-  }
+function applyTransforms() {
+  const transforms = [];
+  if (usingFrontCamera) transforms.push("scaleX(-1)");
+  if (window.innerHeight > window.innerWidth) transforms.push("rotate(90deg)");
+  const t = transforms.join(" ");
+  video.style.transform = t;
+  canvas.style.transform = t;
 }
 function getKeypointConfidence(p) {
   const visibility = p.visibility ?? 0;
   const presence = p.presence ?? 0;
-  const conf = Math.max(visibility, presence);
-  return conf > 0 ? conf : 1;
+  return Math.max(visibility, presence);
 }
 function resultsToKeypoints(res) {
   if (!res.landmarks || !res.landmarks.length) return null;
   const lm = res.landmarks[0];
   return lm.map((p, i) => {
-    // Use the best visibility or presence score from the model. If neither
-    // is provided, default to 1 so the skeleton remains visible.
+    // Use the best visibility or presence score from the model.
     return {
       x: p.x * canvas.width,
       y: p.y * canvas.height,
@@ -229,6 +230,16 @@ function resultsToKeypoints(res) {
       name: LANDMARK_NAMES[i],
     };
   });
+}
+
+function handleResult(res) {
+  const keypoints = resultsToKeypoints(res);
+  if (keypoints) {
+    drawKeypointsAndSkeleton(keypoints);
+    setTips(keypoints);
+    updatePoseScore(keypoints);
+    logLandmarks(keypoints);
+  }
 }
 function drawKeypointsAndSkeleton(keypoints) {
   const w = canvas.width;
@@ -253,7 +264,11 @@ function drawKeypointsAndSkeleton(keypoints) {
     const pa = byName[a];
     const pb = byName[b];
     if (!pa || !pb) continue;
-    if ((pa.score ?? 0) < confidenceThreshold || (pb.score ?? 0) < confidenceThreshold) continue;
+    if (
+      (pa.score ?? 0) < confidenceThreshold ||
+      (pb.score ?? 0) < confidenceThreshold
+    )
+      continue;
     ctx.beginPath();
     ctx.moveTo(pa.x, pa.y);
     ctx.lineTo(pb.x, pb.y);
@@ -315,15 +330,9 @@ function angleDeg(a, b, c) {
 async function loop() {
   if (!running) return;
   try {
-    const res = landmarker.detectForVideo(video, performance.now());
-    const keypoints = resultsToKeypoints(res);
-    if (keypoints) {
-      drawKeypointsAndSkeleton(keypoints);
-      setTips(keypoints);
-      updatePoseScore(keypoints);
-    }
+    await landmarker.detectAsync(video, performance.now());
   } catch (e) {
-    console.warn("detectForVideo failed; resetting landmarker", e);
+    console.warn("detectAsync failed; resetting landmarker", e);
     try {
       await createLandmarker();
     } catch (_) {}
@@ -346,4 +355,14 @@ function updatePoseScore(kp) {
   const mean =
     kp.map((p) => p.score ?? 0).reduce((a, b) => a + b, 0) / kp.length;
   el.innerHTML = `<strong>Pose score:</strong> ${mean.toFixed(2)}`;
+}
+function logLandmarks(kp) {
+  const snapshot = kp.map((p) => ({
+    x: p.x,
+    y: p.y,
+    score: p.score,
+    name: p.name,
+  }));
+  landmarkHistory.push({ ts: performance.now(), keypoints: snapshot });
+  if (landmarkHistory.length > 1000) landmarkHistory.shift();
 }
