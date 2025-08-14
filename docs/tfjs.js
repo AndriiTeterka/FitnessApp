@@ -13,7 +13,7 @@ const cameraWrapper=document.getElementById('cameraWrapper');
 
 let detector=null; let running=false; let lastTs=performance.now(); let frames=0;
 let currentStream=null; const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent); let usingFrontCamera=true;
-const modelType=isMobile?'lite':'heavy';
+const modelType=isMobile?'full':'heavy';
 if(!isMobile){ flipBtn.style.display='none'; cameraWrapper.style.display=''; populateCameras(); usingFrontCamera=false; }
 else{ cameraWrapper.style.display='none'; }
 confRange.addEventListener('input',()=>confVal.textContent=Number(confRange.value).toFixed(2));
@@ -26,7 +26,7 @@ async function createDetector(){
   const pd=window.poseDetection; if(!pd){ alert('pose-detection failed to load.'); throw new Error('poseDetection not available'); }
   const m=pd.SupportedModels.BlazePose;
   const type=modelType;
-  chipModel.innerHTML='Model<strong>'+(type==='lite'?'Lite':'Heavy')+'</strong>';
+  chipModel.innerHTML='Model<strong>'+(type==='lite'?'Lite':type==='full'?'Full':'Heavy')+'</strong>';
   // Try MediaPipe runtime first; if it fails, fallback to TFJS runtime
   try{
     detector=await pd.createDetector(m,{ runtime:'mediapipe', solutionPath:'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404', modelType:type, enableSmoothing:true, selfieMode:usingFrontCamera, minPoseDetectionConfidence:0.5, minPosePresenceConfidence:0.5, minTrackingConfidence:0.5 });
