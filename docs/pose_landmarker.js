@@ -31,13 +31,10 @@ cameraSel.addEventListener('change',async()=>{ if(running){ running=false; if(la
 async function createLandmarker(){
   const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm");
   const modelUrl="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
-  const modelResp = await fetch(modelUrl);
-  const modelData = await modelResp.arrayBuffer();
-  const modelBytes = new Uint8Array(modelData);
   landmarker = await PoseLandmarker.createFromOptions(
     vision,
     {
-      baseOptions: { modelAssetBuffer: modelBytes, delegate: "GPU" },
+      baseOptions: { modelAssetPath: modelUrl, delegate: "GPU" },
       runningMode: "VIDEO",
       numPoses: 1,
       minPoseDetectionConfidence: 0.3,
