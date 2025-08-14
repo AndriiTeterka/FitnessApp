@@ -9,6 +9,7 @@ const ctx = canvas.getContext("2d");
 const startBtn = document.getElementById("startBtn");
 const confRange = document.getElementById("confRange");
 const confVal = document.getElementById("confVal");
+let confidenceThreshold = Number(confRange.value);
 const fpsEl = document.getElementById("fps");
 const tipsList = document.getElementById("tipsList");
 const chipModel = document.getElementById("chipModel");
@@ -105,10 +106,10 @@ if (!isMobile) {
 } else {
   cameraWrapper.style.display = "none";
 }
-confRange.addEventListener(
-  "input",
-  () => (confVal.textContent = Number(confRange.value).toFixed(2)),
-);
+confRange.addEventListener("input", () => {
+  confidenceThreshold = Number(confRange.value);
+  confVal.textContent = confidenceThreshold.toFixed(2);
+});
 startBtn.addEventListener("click", async () => {
   await startCamera();
   await createLandmarker();
@@ -212,17 +213,15 @@ function applyMirror() {
 function getKeypointConfidence(p) {
   const visibility = p.visibility ?? 0;
   const presence = p.presence ?? 0;
-  if (visibility > 0) return visibility;
-  if (presence > 0) return presence;
-  return 1;
+  const conf = Math.max(visibility, presence);
+  return conf > 0 ? conf : 1;
 }
 function resultsToKeypoints(res) {
   if (!res.landmarks || !res.landmarks.length) return null;
   const lm = res.landmarks[0];
   return lm.map((p, i) => {
-    // Visibility or presence can be zero even when the landmark is valid, which
-    // causes the skeleton to disappear for any threshold > 0. Default to a
-    // confidence of 1 when the model doesn't supply a positive score.
+    // Use the best visibility or presence score from the model. If neither
+    // is provided, default to 1 so the skeleton remains visible.
     return {
       x: p.x * canvas.width,
       y: p.y * canvas.height,
@@ -231,7 +230,7 @@ function resultsToKeypoints(res) {
     };
   });
 }
-function drawKeypointsAndSkeleton(keypoints, threshold) {
+function drawKeypointsAndSkeleton(keypoints) {
   const w = canvas.width;
   const h = canvas.height;
   ctx.clearRect(0, 0, w, h);
@@ -243,7 +242,7 @@ function drawKeypointsAndSkeleton(keypoints, threshold) {
   for (const p of keypoints) {
     if (!p || FACE_LANDMARKS.has(p.name)) continue;
     const s = p.score ?? 0;
-    if (s < threshold) continue;
+    if (s < confidenceThreshold) continue;
     ctx.beginPath();
     ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
     ctx.fill();
@@ -254,14 +253,14 @@ function drawKeypointsAndSkeleton(keypoints, threshold) {
     const pa = byName[a];
     const pb = byName[b];
     if (!pa || !pb) continue;
-    if ((pa.score ?? 0) < threshold || (pb.score ?? 0) < threshold) continue;
+    if ((pa.score ?? 0) < confidenceThreshold || (pb.score ?? 0) < confidenceThreshold) continue;
     ctx.beginPath();
     ctx.moveTo(pa.x, pa.y);
     ctx.lineTo(pb.x, pb.y);
     ctx.stroke();
   }
 }
-function setTips(keypoints, threshold) {
+function setTips(keypoints) {
   tipsList.innerHTML = "";
   const add = (t) => {
     const li = document.createElement("li");
@@ -273,7 +272,7 @@ function setTips(keypoints, threshold) {
     if (p && p.name) byName[p.name] = p;
   }
   const get = (n) => byName[n];
-  const s = (n) => (get(n)?.score ?? 0) >= threshold;
+  const s = (n) => (get(n)?.score ?? 0) >= confidenceThreshold;
   const LS = "left_shoulder";
   const RS = "right_shoulder";
   const LH = "left_hip";
@@ -315,13 +314,12 @@ function angleDeg(a, b, c) {
 }
 async function loop() {
   if (!running) return;
-  const threshold = Number(confRange.value);
   try {
     const res = landmarker.detectForVideo(video, performance.now());
     const keypoints = resultsToKeypoints(res);
     if (keypoints) {
-      drawKeypointsAndSkeleton(keypoints, threshold);
-      setTips(keypoints, threshold);
+      drawKeypointsAndSkeleton(keypoints);
+      setTips(keypoints);
       updatePoseScore(keypoints);
     }
   } catch (e) {
