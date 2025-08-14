@@ -1,15 +1,12 @@
-import {
-  PoseLandmarker,
-  FilesetResolver,
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2";
+// Main thread controller for MediaPipe PoseLandmarker running in a Web Worker.
+// Implements default pose-detection parameters, landmark gating, temporal
+// smoothing, decision logic and adaptive performance for a single-person gym
+// coaching scenario.
 
 const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
 const startBtn = document.getElementById("startBtn");
-const confRange = document.getElementById("confRange");
-const confVal = document.getElementById("confVal");
-let confidenceThreshold = Number(confRange.value);
 const fpsEl = document.getElementById("fps");
 const tipsList = document.getElementById("tipsList");
 const chipModel = document.getElementById("chipModel");
@@ -17,14 +14,50 @@ const flipBtn = document.getElementById("flipBtn");
 const cameraSel = document.getElementById("cameraSelect");
 const cameraWrapper = document.getElementById("cameraWrapper");
 
-let landmarker = null;
-let running = false;
-let lastTs = performance.now();
-let frames = 0;
-let currentStream = null;
+// ---------- Pose configuration -------------------------------------------------
+
+const DEFAULT_OPTIONS = {
+  runningMode: "VIDEO",
+  numPoses: 1,
+  minPoseDetectionConfidence: 0.6,
+  minPosePresenceConfidence: 0.75,
+  minTrackingConfidence: 0.7,
+  outputSegmentationMasks: false,
+};
+
+// Additional profiles to tweak runtime behaviour when needed.
+export const PROFILES = {
+  lowLight: {
+    minPoseDetectionConfidence: 0.55,
+    minPosePresenceConfidence: 0.7,
+    minTrackingConfidence: 0.6,
+  },
+  repScoring: { minPosePresenceConfidence: 0.8 },
+  budget: {
+    minPoseDetectionConfidence: 0.55,
+    minPosePresenceConfidence: 0.7,
+    minTrackingConfidence: 0.65,
+  },
+};
+
+// ---------- Camera / worker setup ---------------------------------------------
+
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-let usingFrontCamera = true;
-const landmarkHistory = [];
+let usingFrontCamera = isMobile;
+let currentStream = null;
+
+let worker = null;
+let workerReady = false;
+let workerBusy = false;
+let model = "heavy"; // heavy by default, swaps to lite if tracking degrades
+
+const offscreen = new OffscreenCanvas(1280, 720);
+let lastSent = 0;
+let minFrameInterval = 0; // adaptive frame drop when latency is high
+let lowScoreStart = null;
+
+// ---------- Landmark smoothing & gating ---------------------------------------
+
 const LANDMARK_NAMES = [
   "nose",
   "left_eye_inner",
@@ -99,6 +132,19 @@ const FACE_LANDMARKS = new Set([
   "mouth_left",
   "mouth_right",
 ]);
+
+const lastValid = {};
+const smoothed = {};
+const HOLD_MS = 250;
+const ALPHA = 0.2; // EMA smoothing factor tuned for ~30–60 FPS
+
+// ---------- Decision logic -----------------------------------------------------
+
+const ruleCounters = { torso: 0, leftKnee: 0, rightKnee: 0 };
+let lastCorrectionTime = 0;
+
+// ---------- Event handlers -----------------------------------------------------
+
 if (!isMobile) {
   flipBtn.style.display = "none";
   cameraWrapper.style.display = "";
@@ -107,60 +153,56 @@ if (!isMobile) {
 } else {
   cameraWrapper.style.display = "none";
 }
-confRange.addEventListener("input", () => {
-  confidenceThreshold = Number(confRange.value);
-  confVal.textContent = confidenceThreshold.toFixed(2);
-});
+
 startBtn.addEventListener("click", async () => {
   await startCamera();
-  await createLandmarker();
+  initWorker(model, DEFAULT_OPTIONS);
   running = true;
   requestAnimationFrame(loop);
 });
+
 flipBtn.addEventListener("click", async () => {
   usingFrontCamera = !usingFrontCamera;
   if (running) {
-    running = false;
-    if (landmarker) landmarker.close();
-    landmarker = null;
     await startCamera();
-    await createLandmarker();
-    running = true;
-    requestAnimationFrame(loop);
   } else {
     applyTransforms();
   }
 });
+
 cameraSel.addEventListener("change", async () => {
   if (running) {
-    running = false;
-    if (landmarker) landmarker.close();
-    landmarker = null;
     await startCamera();
-    await createLandmarker();
-    running = true;
-    requestAnimationFrame(loop);
   }
 });
+
 window.addEventListener("orientationchange", applyTransforms);
 
-async function createLandmarker() {
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm",
-  );
-  const modelUrl =
-    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task";
-  landmarker = await PoseLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: modelUrl, delegate: "GPU" },
-    runningMode: "LIVE_STREAM",
-    numPoses: 1,
-    minPoseDetectionConfidence: 0.3,
-    minPosePresenceConfidence: 0.3,
-    minTrackingConfidence: 0.3,
-    outputSegmentationMasks: true,
-  });
-  chipModel.innerHTML = "Model<strong>Heavy</strong>";
+// ---------- Worker interaction -------------------------------------------------
+
+async function initWorker(modelName, opts) {
+  if (worker) worker.terminate();
+  // Classic worker script loads MediaPipe via importScripts.
+  worker = new Worker("./pose_worker.js");
+  workerReady = false;
+  worker.onmessage = (e) => {
+    const { type } = e.data;
+    if (type === "ready") {
+      workerReady = true;
+      chipModel.innerHTML = `Model<strong>${modelName === "lite" ? "Lite" : "Heavy"}</strong>`;
+    } else if (type === "result") {
+      workerBusy = false;
+      const { result, ts } = e.data;
+      handleResult(result, ts);
+      const latency = performance.now() - ts;
+      minFrameInterval = latency > 80 ? 33 : 0; // adapt to ~30 FPS when slow
+    }
+  };
+  worker.postMessage({ type: "init", model: modelName, options: opts });
 }
+
+// ---------- Camera handling ----------------------------------------------------
+
 async function populateCameras() {
   const devices = await navigator.mediaDevices.enumerateDevices();
   const vids = devices.filter((d) => d.kind === "videoinput");
@@ -172,27 +214,24 @@ async function populateCameras() {
     cameraSel.appendChild(o);
   });
 }
+
 async function startCamera() {
-  if (currentStream) {
-    currentStream.getTracks().forEach((t) => t.stop());
-  }
-  const constraints = { video: {}, audio: false };
-  if (isMobile) {
-    constraints.video.facingMode = usingFrontCamera ? "user" : "environment";
-    constraints.video.width = { ideal: 640 };
-    constraints.video.height = { ideal: 480 };
-  } else {
-    constraints.video.width = { ideal: 1280 };
-    constraints.video.height = { ideal: 720 };
-    if (cameraSel.value) {
-      constraints.video.deviceId = { exact: cameraSel.value };
-    }
+  if (currentStream) currentStream.getTracks().forEach((t) => t.stop());
+  const constraints = {
+    video: {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      facingMode: usingFrontCamera ? "user" : "environment",
+    },
+    audio: false,
+  };
+  if (!isMobile && cameraSel.value) {
+    constraints.video.deviceId = { exact: cameraSel.value };
   }
   const stream = await navigator.mediaDevices.getUserMedia(constraints);
   currentStream = stream;
   const facing = stream.getVideoTracks()[0].getSettings().facingMode;
   usingFrontCamera = !facing || facing === "user" || facing === "front";
-  // Wait for metadata before accessing video dimensions
   const ready = new Promise((r) => {
     if (video.readyState >= 1) r();
     else video.addEventListener("loadedmetadata", r, { once: true });
@@ -204,6 +243,7 @@ async function startCamera() {
   canvas.height = video.videoHeight;
   applyTransforms();
 }
+
 function applyTransforms() {
   const transforms = [];
   if (usingFrontCamera) transforms.push("scaleX(-1)");
@@ -212,52 +252,74 @@ function applyTransforms() {
   video.style.transform = t;
   canvas.style.transform = t;
 }
-function getKeypointConfidence(p) {
-  const visibility = p.visibility ?? 0;
-  const presence = p.presence ?? 0;
-  return Math.max(visibility, presence);
-}
-function resultsToKeypoints(res) {
-  if (!res.landmarks || !res.landmarks.length) return null;
-  const lm = res.landmarks[0];
-  return lm.map((p, i) => {
-    // Use the best visibility or presence score from the model.
-    return {
-      x: p.x * canvas.width,
-      y: p.y * canvas.height,
-      score: getKeypointConfidence(p),
-      name: LANDMARK_NAMES[i],
-    };
-  });
+
+// ---------- Main loop ---------------------------------------------------------
+
+let running = false;
+function loop() {
+  if (!running) return;
+  const now = performance.now();
+  if (workerReady && !workerBusy && now - lastSent >= minFrameInterval) {
+    const ctxOff = offscreen.getContext("2d");
+    ctxOff.drawImage(video, 0, 0, offscreen.width, offscreen.height);
+    const bitmap = offscreen.transferToImageBitmap();
+    workerBusy = true;
+    lastSent = now;
+    worker.postMessage({ type: "frame", bitmap, ts: now }, [bitmap]);
+  }
+  requestAnimationFrame(loop);
 }
 
-function handleResult(res) {
-  const keypoints = resultsToKeypoints(res);
-  if (res.segmentationMasks) {
-    for (const m of res.segmentationMasks) {
-      if (m.close) m.close();
-    }
-  }
-  if (keypoints) {
-    drawKeypointsAndSkeleton(keypoints);
-    setTips(keypoints);
-    updatePoseScore(keypoints);
-    logLandmarks(keypoints);
-  }
+// ---------- Result handling ----------------------------------------------------
+
+function handleResult(res, ts) {
+  const keypoints = processLandmarks(res, ts);
+  drawKeypointsAndSkeleton(keypoints);
+  evaluateRules(keypoints, ts);
+  updatePoseScore(res);
+  updateFps();
 }
+
+function processLandmarks(res, ts) {
+  if (!res.landmarks || !res.landmarks.length) return [];
+  const lm = res.landmarks[0];
+  const out = [];
+  lm.forEach((p, i) => {
+    const name = LANDMARK_NAMES[i];
+    const vis = p.visibility ?? 0;
+    const pres = p.presence ?? 0;
+    if (vis >= 0.6 && pres >= 0.6) {
+      const x = p.x * canvas.width;
+      const y = p.y * canvas.height;
+      lastValid[name] = { x, y, ts };
+    }
+    const last = lastValid[name];
+    if (last && ts - last.ts <= HOLD_MS) {
+      const s = smoothed[name] || { x: last.x, y: last.y };
+      s.x = ALPHA * last.x + (1 - ALPHA) * s.x;
+      s.y = ALPHA * last.y + (1 - ALPHA) * s.y;
+      smoothed[name] = s;
+      out.push({ name, x: s.x, y: s.y });
+    } else {
+      delete lastValid[name];
+      delete smoothed[name];
+      out.push(null);
+    }
+  });
+  return out;
+}
+
 function drawKeypointsAndSkeleton(keypoints) {
   const w = canvas.width;
   const h = canvas.height;
   ctx.clearRect(0, 0, w, h);
   const byName = {};
-  for (const p of keypoints) {
-    if (p && p.name) byName[p.name] = p;
-  }
+  keypoints.forEach((p) => {
+    if (p) byName[p.name] = p;
+  });
   ctx.fillStyle = "#66e0a3";
   for (const p of keypoints) {
     if (!p || FACE_LANDMARKS.has(p.name)) continue;
-    const s = p.score ?? 0;
-    if (s < confidenceThreshold) continue;
     ctx.beginPath();
     ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
     ctx.fill();
@@ -268,107 +330,109 @@ function drawKeypointsAndSkeleton(keypoints) {
     const pa = byName[a];
     const pb = byName[b];
     if (!pa || !pb) continue;
-    if (
-      (pa.score ?? 0) < confidenceThreshold ||
-      (pb.score ?? 0) < confidenceThreshold
-    )
-      continue;
     ctx.beginPath();
     ctx.moveTo(pa.x, pa.y);
     ctx.lineTo(pb.x, pb.y);
     ctx.stroke();
   }
 }
-function setTips(keypoints) {
-  tipsList.innerHTML = "";
-  const add = (t) => {
-    const li = document.createElement("li");
-    li.textContent = t;
-    tipsList.appendChild(li);
-  };
+
+function evaluateRules(keypoints, ts) {
+  const msgs = [];
   const byName = {};
-  for (const p of keypoints) {
-    if (p && p.name) byName[p.name] = p;
-  }
+  keypoints.forEach((p) => {
+    if (p) byName[p.name] = p;
+  });
   const get = (n) => byName[n];
-  const s = (n) => (get(n)?.score ?? 0) >= confidenceThreshold;
-  const LS = "left_shoulder";
-  const RS = "right_shoulder";
-  const LH = "left_hip";
-  const RH = "right_hip";
-  const LK = "left_knee";
-  const RK = "right_knee";
-  if (s(LS) && s(RS) && s(LH) && s(RH) && (s(LK) || s(RK))) {
-    const ms = {
-      x: (get(LS).x + get(RS).x) / 2,
-      y: (get(LS).y + get(RS).y) / 2,
-    };
-    const mh = {
-      x: (get(LH).x + get(RH).x) / 2,
-      y: (get(LH).y + get(RH).y) / 2,
-    };
-    const knee = s(LK) ? get(LK) : get(RK);
-    const torso = angleDeg(ms, mh, knee);
-    if (torso != null && torso < 150) {
-      add("Keep chest up, reduce torso lean.");
+
+  const torso = angleDeg(mid(get("left_shoulder"), get("right_shoulder")), mid(get("left_hip"), get("right_hip")), get("left_knee") || get("right_knee"));
+  if (torso != null && torso < 150) ruleCounters.torso++; else ruleCounters.torso = 0;
+  if (ruleCounters.torso >= 3 && ts - lastCorrectionTime > 1500) {
+    msgs.push("Keep chest up, reduce torso lean.");
+    lastCorrectionTime = ts;
+  }
+
+  const lk = get("left_knee"), lh = get("left_hip");
+  if (lk && lh && Math.abs(lk.x - lh.x) > canvas.width * 0.2) ruleCounters.leftKnee++; else ruleCounters.leftKnee = 0;
+  if (ruleCounters.leftKnee >= 3 && ts - lastCorrectionTime > 1500) {
+    msgs.push("Left knee drifting; align over foot.");
+    lastCorrectionTime = ts;
+  }
+
+  const rk = get("right_knee"), rh = get("right_hip");
+  if (rk && rh && Math.abs(rk.x - rh.x) > canvas.width * 0.2) ruleCounters.rightKnee++; else ruleCounters.rightKnee = 0;
+  if (ruleCounters.rightKnee >= 3 && ts - lastCorrectionTime > 1500) {
+    msgs.push("Right knee drifting; align over foot.");
+    lastCorrectionTime = ts;
+  }
+
+  tipsList.innerHTML = "";
+  if (!msgs.length) {
+    const li = document.createElement("li");
+    li.textContent = "Nice form!";
+    tipsList.appendChild(li);
+  } else {
+    for (const m of msgs) {
+      const li = document.createElement("li");
+      li.className = "warn";
+      li.textContent = m;
+      tipsList.appendChild(li);
     }
   }
-  if (s(LK) && s(LH) && Math.abs(get(LK).x - get(LH).x) > canvas.width * 0.2) {
-    add("Left knee drifting; align over foot.");
-  }
-  if (s(RK) && s(RH) && Math.abs(get(RK).x - get(RH).x) > canvas.width * 0.2) {
-    add("Right knee drifting; align over foot.");
-  }
-  if (!tipsList.children.length) add("Nice form!");
 }
+
+function mid(a, b) {
+  if (!a || !b) return null;
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
 function angleDeg(a, b, c) {
-  const v1 = [a.x - b.x, a.y - b.y],
-    v2 = [c.x - b.x, c.y - b.y];
+  if (!a || !b || !c) return null;
+  const v1 = [a.x - b.x, a.y - b.y];
+  const v2 = [c.x - b.x, c.y - b.y];
   const dot = v1[0] * v2[0] + v1[1] * v2[1];
-  const m1 = Math.hypot(v1[0], v1[1]),
-    m2 = Math.hypot(v2[0], v2[1]);
+  const m1 = Math.hypot(v1[0], v1[1]);
+  const m2 = Math.hypot(v2[0], v2[1]);
   if (m1 === 0 || m2 === 0) return null;
   const cos = Math.min(1, Math.max(-1, dot / (m1 * m2)));
   return (Math.acos(cos) * 180) / Math.PI;
 }
-async function loop() {
-  if (!running) return;
-  try {
-    // Process the current video frame and draw results immediately
-    const res = landmarker.detectForVideo(video, performance.now());
-    if (res) handleResult(res);
-  } catch (e) {
-    console.warn("detectForVideo failed; resetting landmarker", e);
-    try {
-      await createLandmarker();
-    } catch (_) {}
+
+function updatePoseScore(res) {
+  const el = document.getElementById("poseScore");
+  if (!res.landmarks || !res.landmarks.length) {
+    el.innerHTML = `<strong>Pose score:</strong> –`;
+    return;
   }
-  updateFps();
-  requestAnimationFrame(loop);
+  const lm = res.landmarks[0];
+  const mean = lm
+    .map((p) => Math.min(p.visibility ?? 0, p.presence ?? 0))
+    .reduce((a, b) => a + b, 0) / lm.length;
+  el.innerHTML = `<strong>Pose score:</strong> ${mean.toFixed(2)}`;
+
+  // Model swapper: if tracking quality drops below 0.5 for 500ms, use lite model
+  if (mean < 0.5) {
+    if (!lowScoreStart) lowScoreStart = performance.now();
+    if (performance.now() - lowScoreStart > 500 && model !== "lite") {
+      model = "lite";
+      initWorker("lite", { ...DEFAULT_OPTIONS, ...PROFILES.budget });
+    }
+  } else {
+    lowScoreStart = null;
+  }
 }
+
+// FPS display
+let lastFpsTs = performance.now();
+let frames = 0;
 function updateFps() {
   frames++;
   const now = performance.now();
-  if (now - lastTs >= 1000) {
-    const fps = frames / ((now - lastTs) / 1000);
+  if (now - lastFpsTs >= 1000) {
+    const fps = frames / ((now - lastFpsTs) / 1000);
     fpsEl.innerHTML = `<strong>FPS:</strong> ${fps.toFixed(1)}`;
     frames = 0;
-    lastTs = now;
+    lastFpsTs = now;
   }
 }
-function updatePoseScore(kp) {
-  const el = document.getElementById("poseScore");
-  const mean =
-    kp.map((p) => p.score ?? 0).reduce((a, b) => a + b, 0) / kp.length;
-  el.innerHTML = `<strong>Pose score:</strong> ${mean.toFixed(2)}`;
-}
-function logLandmarks(kp) {
-  const snapshot = kp.map((p) => ({
-    x: p.x,
-    y: p.y,
-    score: p.score,
-    name: p.name,
-  }));
-  landmarkHistory.push({ ts: performance.now(), keypoints: snapshot });
-  if (landmarkHistory.length > 1000) landmarkHistory.shift();
-}
+
