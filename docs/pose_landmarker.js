@@ -51,7 +51,7 @@ let workerReady = false;
 let workerBusy = false;
 let model = "heavy"; // heavy by default, swaps to lite if tracking degrades
 
-const offscreen = new OffscreenCanvas(1280, 720);
+const offscreen = new OffscreenCanvas(1, 1);
 let lastSent = 0;
 let minFrameInterval = 0; // adaptive frame drop when latency is high
 let lowScoreStart = null;
@@ -241,13 +241,15 @@ async function startCamera() {
   await video.play();
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
+  offscreen.width = video.videoWidth;
+  offscreen.height = video.videoHeight;
   applyTransforms();
 }
 
 function applyTransforms() {
   const transforms = [];
   if (usingFrontCamera) transforms.push("scaleX(-1)");
-  if (window.innerHeight > window.innerWidth) transforms.push("rotate(90deg)");
+  if (video.videoWidth < video.videoHeight) transforms.push("rotate(90deg)");
   const t = transforms.join(" ");
   video.style.transform = t;
   canvas.style.transform = t;
