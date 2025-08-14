@@ -172,7 +172,7 @@ window.addEventListener("orientationchange", applyTransforms);
 
 async function createWorker(model) {
   if (worker) worker.terminate();
-  worker = new Worker("./pose_worker.js");
+  worker = new Worker("./pose_worker.js", { type: "module" });
   worker.onmessage = handleWorkerMessage;
   worker.postMessage({ type: "init", options: currentOptions, model });
   chipModel.innerHTML = `Model<strong>${model === "lite" ? "Lite" : "Heavy"}</strong>`;
@@ -181,7 +181,7 @@ async function createWorker(model) {
 
 function handleWorkerMessage(e) {
   if (e.data.type === "error") {
-    console.error("Worker failed to load vision bundle:", e.data.error);
+    console.error("Worker error:", e.data.error);
     running = false;
     return;
   }
