@@ -180,6 +180,10 @@ async function createWorker(model) {
 }
 
 function handleWorkerMessage(e) {
+  if (e.data.type === "error") {
+    console.error("Worker failed to load vision bundle:", e.data.error);
+    return;
+  }
   if (e.data.type !== "result") return;
   const res = e.data.result;
   const latency = e.data.latency;

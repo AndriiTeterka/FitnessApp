@@ -1,4 +1,13 @@
-importScripts("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/vision_bundle.js");
+// Load the MediaPipe Tasks vision bundle in the worker context. Some CDN
+// paths such as `vision_bundle.js` can fail to resolve depending on caching
+// or CDN rewrites, so import the package root which forwards to the correct
+// bundle entry.
+try {
+  importScripts("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2");
+} catch (err) {
+  // Forward any load errors to the main thread for visibility.
+  self.postMessage({ type: "error", error: err.message });
+}
 
 let landmarker = null;
 let running = false;
