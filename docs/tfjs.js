@@ -13,13 +13,13 @@ const cameraWrapper=document.getElementById('cameraWrapper');
 
 let detector=null; let running=false; let lastTs=performance.now(); let frames=0;
 let currentStream=null; const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent); let usingFrontCamera=true;
-const modelType=isMobile?'full':'heavy';
+const modelType=isMobile?'lite':'heavy';
 if(!isMobile){ flipBtn.style.display='none'; cameraWrapper.style.display=''; populateCameras(); usingFrontCamera=false; }
 else{ cameraWrapper.style.display='none'; }
 confRange.addEventListener('input',()=>confVal.textContent=Number(confRange.value).toFixed(2));
-startBtn.addEventListener('click',async()=>{ await setupBackend(); await createDetector(); await startCamera(); running=true; requestAnimationFrame(loop); });
-flipBtn.addEventListener('click',async()=>{ usingFrontCamera=!usingFrontCamera; if(running){ if(detector) detector.dispose(); detector=null; await startCamera(); await createDetector(); } else { applyMirror(); } });
-cameraSel.addEventListener('change',async()=>{ if(running){ if(detector) detector.dispose(); detector=null; await startCamera(); await createDetector(); } });
+startBtn.addEventListener('click',async()=>{ await setupBackend(); await startCamera(); await createDetector(); running=true; requestAnimationFrame(loop); });
+flipBtn.addEventListener('click',async()=>{ usingFrontCamera=!usingFrontCamera; if(running){ running=false; if(detector) detector.dispose(); detector=null; await startCamera(); await createDetector(); running=true; requestAnimationFrame(loop); } else { applyMirror(); } });
+cameraSel.addEventListener('change',async()=>{ if(running){ running=false; if(detector) detector.dispose(); detector=null; await startCamera(); await createDetector(); running=true; requestAnimationFrame(loop); } });
 
 async function setupBackend(){ await tf.setBackend('webgl'); await tf.ready(); }
 async function createDetector(){
@@ -27,7 +27,6 @@ async function createDetector(){
   const m=pd.SupportedModels.BlazePose;
   const type=modelType;
   chipModel.innerHTML='Model<strong>'+(type==='lite'?'Lite':type==='full'?'Full':'Heavy')+'</strong>';
-  // Try MediaPipe runtime first; if it fails, fallback to TFJS runtime
   try{
     detector=await pd.createDetector(m,{ runtime:'mediapipe', solutionPath:'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404', modelType:type, enableSmoothing:true, selfieMode:usingFrontCamera, minPoseDetectionConfidence:0.5, minPosePresenceConfidence:0.5, minTrackingConfidence:0.5 });
   }catch(e){
@@ -44,7 +43,7 @@ async function populateCameras(){
 async function startCamera(){
   if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
   const constraints={video:{},audio:false};
-  if(isMobile){ constraints.video.facingMode=usingFrontCamera?'user':'environment'; constraints.video.width={ideal:480}; constraints.video.height={ideal:360}; }
+  if(isMobile){ constraints.video.facingMode=usingFrontCamera?'user':'environment'; constraints.video.width={ideal:320}; constraints.video.height={ideal:240}; }
   else{ constraints.video.width=640; constraints.video.height=480; if(cameraSel.value){ constraints.video.deviceId={exact:cameraSel.value}; } }
   const stream=await navigator.mediaDevices.getUserMedia(constraints);
   currentStream=stream;
