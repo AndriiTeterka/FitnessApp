@@ -61,9 +61,13 @@ async function startCamera(){
   currentStream=stream;
   const facing=stream.getVideoTracks()[0].getSettings().facingMode;
   usingFrontCamera=!facing || facing==='user' || facing==='front';
+  // Wait for metadata before accessing video dimensions
+  const ready=new Promise(r=>{
+    if(video.readyState>=1) r();
+    else video.addEventListener('loadedmetadata',r,{once:true});
+  });
   video.srcObject=stream;
-  // Ensure video dimensions are ready before sizing the canvas
-  await new Promise(r=>{ video.onloadedmetadata=r; });
+  await ready;
   await video.play();
   canvas.width=video.videoWidth;
   canvas.height=video.videoHeight;
