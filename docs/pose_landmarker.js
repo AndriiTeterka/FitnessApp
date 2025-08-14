@@ -45,7 +45,34 @@ async function createLandmarker(){
   chipModel.innerHTML='Model<strong>Lite</strong>';
 }
 async function populateCameras(){ const devices=await navigator.mediaDevices.enumerateDevices(); const vids=devices.filter(d=>d.kind==='videoinput'); cameraSel.innerHTML=''; vids.forEach((d,i)=>{ const o=document.createElement('option'); o.value=d.deviceId; o.text=d.label||`Camera ${i+1}`; cameraSel.appendChild(o); }); }
-async function startCamera(){ if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); } const constraints={video:{},audio:false}; if(isMobile){ constraints.video.facingMode=usingFrontCamera?'user':'environment'; constraints.video.width={ideal:320}; constraints.video.height={ideal:240}; } else { constraints.video.width=640; constraints.video.height=480; if(cameraSel.value){ constraints.video.deviceId={exact:cameraSel.value}; } } const stream=await navigator.mediaDevices.getUserMedia(constraints); currentStream=stream; const facing=stream.getVideoTracks()[0].getSettings().facingMode; usingFrontCamera=!facing || facing==='user' || facing==='front'; video.srcObject=stream; await video.play(); canvas.width=video.videoWidth; canvas.height=video.videoHeight; applyMirror(); }
+async function startCamera(){
+  if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); }
+  const constraints={video:{},audio:false};
+  if(isMobile){
+    constraints.video.facingMode=usingFrontCamera?'user':'environment';
+    constraints.video.width={ideal:320};
+    constraints.video.height={ideal:240};
+  } else {
+    constraints.video.width=640;
+    constraints.video.height=480;
+    if(cameraSel.value){ constraints.video.deviceId={exact:cameraSel.value}; }
+  }
+  const stream=await navigator.mediaDevices.getUserMedia(constraints);
+  currentStream=stream;
+  const facing=stream.getVideoTracks()[0].getSettings().facingMode;
+  usingFrontCamera=!facing || facing==='user' || facing==='front';
+  // Wait for metadata before accessing video dimensions
+  const ready=new Promise(r=>{
+    if(video.readyState>=1) r();
+    else video.addEventListener('loadedmetadata',r,{once:true});
+  });
+  video.srcObject=stream;
+  await ready;
+  await video.play();
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  applyMirror();
+}
 function applyMirror(){ if(usingFrontCamera){ video.style.transform='scaleX(-1)'; canvas.style.transform='scaleX(-1)'; } else { video.style.transform=''; canvas.style.transform=''; } }
 function resultsToKeypoints(res){ if(!res.landmarks||!res.landmarks.length) return null; const lm=res.landmarks[0]; return lm.map((p,i)=>({x:p.x*canvas.width,y:p.y*canvas.height,score:p.visibility??0,name:LANDMARK_NAMES[i]})); }
 function drawKeypointsAndSkeleton(kp,thr){ const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h); const byName={}; for(const p of kp){ if(p&&p.name) byName[p.name]=p; } const segs=[[ 'left_shoulder','left_elbow'],['left_elbow','left_wrist'], ['right_shoulder','right_elbow'],['right_elbow','right_wrist'], ['left_wrist','left_index'],['left_wrist','left_pinky'],['left_wrist','left_thumb'], ['right_wrist','right_index'],['right_wrist','right_pinky'],['right_wrist','right_thumb'], ['left_hip','left_knee'],['left_knee','left_ankle'],['left_ankle','left_heel'],['left_heel','left_foot_index'], ['right_hip','right_knee'],['right_knee','right_ankle'],['right_ankle','right_heel'],['right_heel','right_foot_index'], ['left_shoulder','right_shoulder'],['left_hip','right_hip'], ['left_shoulder','left_hip'],['right_shoulder','right_hip'] ]; const FACE_NAMES=new Set(['nose','left_eye_inner','left_eye','left_eye_outer','right_eye_inner','right_eye','right_eye_outer','left_ear','right_ear','mouth_left','mouth_right']); ctx.fillStyle='#66e0a3'; for(const p of kp){ if(!p) continue; if(FACE_NAMES.has(p.name)) continue; const s=p.score??0; if(s<thr) continue; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill(); } ctx.strokeStyle='#7aa7ff'; ctx.lineWidth=3; for(const [a,b] of segs){ const pa=byName[a],pb=byName[b]; if(!pa||!pb) continue; if((pa.score??0)<thr||(pb.score??0)<thr) continue; ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke(); } }
