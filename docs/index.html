@@ -3,20 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FitnessApp • MediaPipe Pose (TF.js)</title>
+    <title>FitnessApp • MediaPipe Pose Landmarker</title>
     <link rel="stylesheet" href="./styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.14.0/dist/tf-backend-webgl.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@latest/dist/pose-detection.min.js"></script>
-    <!-- MediaPipe Pose (required when using runtime: 'mediapipe') -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"></script>
   </head>
   <body>
     <header class="app-header">
       <div class="brand"><div class="logo"></div>
         <div>
           <h1>FitnessApp</h1>
-          <p class="subtitle">Client‑side MediaPipe Pose (TF.js)</p>
+          <p class="subtitle">Client‑side MediaPipe Pose Landmarker</p>
         </div>
       </div>
     </header>
@@ -43,7 +38,7 @@
         <div class="chips">
           <div class="chip">Backend<strong>WebGL</strong></div>
           <div class="chip">Resolution<strong>Auto</strong></div>
-          <div class="chip" id="chipModel">Model<strong>Heavy</strong></div>
+          <div class="chip" id="chipModel">Model<strong>Lite</strong></div>
         </div>
         <div class="card grid">
           <div id="fps"><strong>FPS:</strong> –</div>
@@ -57,7 +52,7 @@
       </aside>
     </main>
     <footer class="app-footer"><small>Client‑side inference. For mobile, use HTTPS.</small></footer>
-    <script type="module" src="./tfjs.js"></script>
+    <script type="module" src="./pose_landmarker.js"></script>
   </body>
  </html>
 
