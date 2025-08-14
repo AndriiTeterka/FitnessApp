@@ -2,9 +2,7 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
 const startBtn = document.getElementById("startBtn");
-const confRange = document.getElementById("confRange");
-const confVal = document.getElementById("confVal");
-let confidenceThreshold = Number(confRange.value);
+let confidenceThreshold = 0.6;
 const fpsEl = document.getElementById("fps");
 const tipsList = document.getElementById("tipsList");
 const chipModel = document.getElementById("chipModel");
@@ -138,11 +136,6 @@ if (!isMobile) {
   cameraWrapper.style.display = "none";
 }
 
-confRange.addEventListener("input", () => {
-  confidenceThreshold = Number(confRange.value);
-  confVal.textContent = confidenceThreshold.toFixed(2);
-});
-
 startBtn.addEventListener("click", async () => {
   await startCamera();
   await createWorker("heavy");
@@ -179,7 +172,7 @@ window.addEventListener("orientationchange", applyTransforms);
 
 async function createWorker(model) {
   if (worker) worker.terminate();
-  worker = new Worker("./pose_worker.js", { type: "module" });
+  worker = new Worker("./pose_worker.js");
   worker.onmessage = handleWorkerMessage;
   worker.postMessage({ type: "init", options: currentOptions, model });
   chipModel.innerHTML = `Model<strong>${model === "lite" ? "Lite" : "Heavy"}</strong>`;

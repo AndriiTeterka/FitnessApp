@@ -1,4 +1,4 @@
-import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2";
+importScripts("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2");
 
 let landmarker = null;
 let running = false;
