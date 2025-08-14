@@ -213,17 +213,14 @@ function applyMirror() {
 function getKeypointConfidence(p) {
   const visibility = p.visibility ?? 0;
   const presence = p.presence ?? 0;
-  if (visibility > 0) return visibility;
-  if (presence > 0) return presence;
-  return 1;
+  return Math.max(visibility, presence);
 }
 function resultsToKeypoints(res) {
   if (!res.landmarks || !res.landmarks.length) return null;
   const lm = res.landmarks[0];
   return lm.map((p, i) => {
-    // Visibility or presence can be zero even when the landmark is valid, which
-    // causes the skeleton to disappear for any threshold > 0. Default to a
-    // confidence of 1 when the model doesn't supply a positive score.
+    // Use the best visibility or presence score from the model. If neither
+    // is provided, fall back to 0 so the confidence slider can filter it out.
     return {
       x: p.x * canvas.width,
       y: p.y * canvas.height,
