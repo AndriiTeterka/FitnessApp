@@ -5,7 +5,7 @@
 self.exports = {};
 const module = { exports: self.exports };
 importScripts("./vision_bundle.js");
-const { PoseLandmarker, FilesetResolver } = module.exports;
+const MP = module.exports;
 
 let landmarker = null;
 let options = null;
@@ -38,10 +38,10 @@ self.onmessage = async (e) => {
 
 async function loadModel(model) {
   if (landmarker) landmarker.close();
-  const vision = await FilesetResolver.forVisionTasks(
+  const vision = await MP.FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm",
   );
-  landmarker = await PoseLandmarker.createFromOptions(vision, {
+  landmarker = await MP.PoseLandmarker.createFromOptions(vision, {
     baseOptions: { modelAssetPath: MODEL_URLS[model], delegate: "GPU" },
     ...options,
   });
