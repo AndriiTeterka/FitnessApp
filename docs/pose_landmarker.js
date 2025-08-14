@@ -51,7 +51,7 @@ let workerReady = false;
 let workerBusy = false;
 let model = "heavy"; // heavy by default, swaps to lite if tracking degrades
 
-const offscreen = new OffscreenCanvas(1280, 720);
+const offscreen = new OffscreenCanvas(1, 1);
 let lastSent = 0;
 let minFrameInterval = 0; // adaptive frame drop when latency is high
 let lowScoreStart = null;
@@ -241,13 +241,29 @@ async function startCamera() {
   await video.play();
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
+  offscreen.width = video.videoWidth;
+  offscreen.height = video.videoHeight;
   applyTransforms();
 }
 
 function applyTransforms() {
   const transforms = [];
   if (usingFrontCamera) transforms.push("scaleX(-1)");
-  if (window.innerHeight > window.innerWidth) transforms.push("rotate(90deg)");
+  const rotate = video.videoWidth > video.videoHeight;
+  if (rotate) {
+    transforms.push("rotate(90deg)");
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    video.style.width = `${h}px`;
+    video.style.height = `${w}px`;
+    canvas.style.width = `${h}px`;
+    canvas.style.height = `${w}px`;
+  } else {
+    video.style.width = "";
+    video.style.height = "";
+    canvas.style.width = "";
+    canvas.style.height = "";
+  }
   const t = transforms.join(" ");
   video.style.transform = t;
   canvas.style.transform = t;
@@ -286,9 +302,9 @@ function processLandmarks(res, ts) {
   const out = [];
   lm.forEach((p, i) => {
     const name = LANDMARK_NAMES[i];
-    const vis = p.visibility ?? 0;
-    const pres = p.presence ?? 0;
-    if (vis >= 0.6 && pres >= 0.6) {
+    const vis = p.visibility ?? 1;
+    const pres = p.presence ?? 1;
+    if (vis >= 0.5 && pres >= 0.5) {
       const x = p.x * canvas.width;
       const y = p.y * canvas.height;
       lastValid[name] = { x, y, ts };
