@@ -249,7 +249,21 @@ async function startCamera() {
 function applyTransforms() {
   const transforms = [];
   if (usingFrontCamera) transforms.push("scaleX(-1)");
-  if (video.videoWidth < video.videoHeight) transforms.push("rotate(90deg)");
+  const rotate = video.videoWidth > video.videoHeight;
+  if (rotate) {
+    transforms.push("rotate(90deg)");
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    video.style.width = `${h}px`;
+    video.style.height = `${w}px`;
+    canvas.style.width = `${h}px`;
+    canvas.style.height = `${w}px`;
+  } else {
+    video.style.width = "";
+    video.style.height = "";
+    canvas.style.width = "";
+    canvas.style.height = "";
+  }
   const t = transforms.join(" ");
   video.style.transform = t;
   canvas.style.transform = t;
