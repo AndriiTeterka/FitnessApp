@@ -66,6 +66,7 @@ let currentFps = 0;
 let lowFpsSince = null;
 let lowFpsModelSince = null;
 let frameToggle = false;
+let avgLatency = 0;
 
 // ---------- Landmark smoothing & gating ---------------------------------------
 
@@ -204,9 +205,10 @@ async function initWorker(modelName, opts) {
     } else if (type === "result") {
       workerBusy = false;
       const { result, ts } = e.data;
-      handleResult(result, ts);
       const latency = performance.now() - ts;
       minFrameInterval = latency > 80 ? 33 : 0; // adapt to ~30 FPS when slow
+      handleResult(result, ts);
+      updateFps(latency);
     }
   };
   worker.postMessage({ type: "init", model: modelName, options: opts });
@@ -302,6 +304,7 @@ function loop() {
       isMobile &&
       RES_LEVELS.length &&
       currentFps < 25 &&
+      currentFps >= 20 &&
       resIndex === RES_LEVELS.length - 1
     ) {
       frameToggle = !frameToggle;
@@ -329,7 +332,6 @@ function handleResult(res, ts) {
   drawKeypointsAndSkeleton(keypoints);
   evaluateRules(keypoints, ts);
   updatePoseScore(res);
-  updateFps();
 }
 
 function processLandmarks(res, ts) {
@@ -474,21 +476,16 @@ function updatePoseScore(res) {
   }
 }
 
-// FPS display
-let lastFpsTs = performance.now();
-let frames = 0;
-function updateFps() {
-  frames++;
-  const now = performance.now();
-  if (now - lastFpsTs >= 1000) {
-    const fps = frames / ((now - lastFpsTs) / 1000);
-    currentFps = fps;
-    fpsEl.innerHTML = `<strong>FPS:</strong> ${fps.toFixed(1)}`;
-    frames = 0;
-    lastFpsTs = now;
-    maybeReduceResolution(fps);
-    maybeSwitchToLite(fps);
-  }
+// FPS display based on averaged per-frame latency
+function updateFps(latency) {
+  avgLatency = avgLatency
+    ? 0.2 * latency + 0.8 * avgLatency
+    : latency;
+  const fps = 1000 / avgLatency;
+  currentFps = fps;
+  fpsEl.innerHTML = `<strong>FPS:</strong> ${fps.toFixed(1)}`;
+  maybeReduceResolution(fps);
+  maybeSwitchToLite(fps);
 }
 
 function maybeReduceResolution(fps) {
