@@ -20,8 +20,8 @@ const DEFAULT_OPTIONS = {
   runningMode: "VIDEO",
   numPoses: 1,
   minPoseDetectionConfidence: 0.6,
-  minPosePresenceConfidence: 0.75,
-  minTrackingConfidence: 0.7,
+  minPosePresenceConfidence: 0.6,
+  minTrackingConfidence: 0.6,
   outputSegmentationMasks: false,
 };
 
@@ -51,10 +51,21 @@ let workerReady = false;
 let workerBusy = false;
 let model = "heavy"; // heavy by default, swaps to lite if tracking degrades
 
-const offscreen = new OffscreenCanvas(1, 1);
+// Processing resolutions; start high and drop if analysis FPS suffers.
+const PROCESS_SIZES = [
+  { w: 960, h: 540 },
+  { w: 640, h: 360 },
+];
+let procSizeIndex = 0;
+const offscreen = new OffscreenCanvas(
+  PROCESS_SIZES[procSizeIndex].w,
+  PROCESS_SIZES[procSizeIndex].h,
+);
 let lastSent = 0;
 let minFrameInterval = 0; // adaptive frame drop when latency is high
 let lowScoreStart = null;
+let goodScoreStart = null;
+let analysisFps = 0;
 
 // ---------- Landmark smoothing & gating ---------------------------------------
 
@@ -195,7 +206,8 @@ async function initWorker(modelName, opts) {
       const { result, ts } = e.data;
       handleResult(result, ts);
       const latency = performance.now() - ts;
-      minFrameInterval = latency > 80 ? 33 : 0; // adapt to ~30 FPS when slow
+      // If inference is slow, drop the next frame to keep UI responsive.
+      minFrameInterval = latency > 33 ? 16 : 0;
     }
   };
   worker.postMessage({ type: "init", model: modelName, options: opts });
@@ -241,9 +253,15 @@ async function startCamera() {
   await video.play();
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  offscreen.width = video.videoWidth;
-  offscreen.height = video.videoHeight;
+  setProcessSize(procSizeIndex);
   applyTransforms();
+}
+
+function setProcessSize(idx) {
+  procSizeIndex = idx;
+  const { w, h } = PROCESS_SIZES[idx];
+  offscreen.width = w;
+  offscreen.height = h;
 }
 
 function applyTransforms() {
@@ -293,18 +311,22 @@ function handleResult(res, ts) {
   drawKeypointsAndSkeleton(keypoints);
   evaluateRules(keypoints, ts);
   updatePoseScore(res);
-  updateFps();
+  const fps = updateFps();
+  if (fps && fps < 28 && procSizeIndex === 0) {
+    setProcessSize(1);
+  }
 }
 
-function processLandmarks(res, ts) {
+function processLandmarks(res, ts, repMode = false) {
   if (!res.landmarks || !res.landmarks.length) return [];
   const lm = res.landmarks[0];
   const out = [];
+  const gate = repMode ? 0.75 : 0.6;
   lm.forEach((p, i) => {
     const name = LANDMARK_NAMES[i];
     const vis = p.visibility ?? 1;
     const pres = p.presence ?? 1;
-    if (vis >= 0.5 && pres >= 0.5) {
+    if (vis >= gate && pres >= gate) {
       const x = p.x * canvas.width;
       const y = p.y * canvas.height;
       lastValid[name] = { x, y, ts };
@@ -426,15 +448,26 @@ function updatePoseScore(res) {
     .reduce((a, b) => a + b, 0) / lm.length;
   el.innerHTML = `<strong>Pose score:</strong> ${mean.toFixed(2)}`;
 
-  // Model swapper: if tracking quality drops below 0.5 for 500ms, use lite model
+  // Model swapper: degrade to lite when quality drops, recover when stable.
   if (mean < 0.5) {
     if (!lowScoreStart) lowScoreStart = performance.now();
+    goodScoreStart = null;
     if (performance.now() - lowScoreStart > 500 && model !== "lite") {
       model = "lite";
       initWorker("lite", { ...DEFAULT_OPTIONS, ...PROFILES.budget });
     }
+  } else if (mean >= 0.6) {
+    lowScoreStart = null;
+    if (model === "lite") {
+      if (!goodScoreStart) goodScoreStart = performance.now();
+      if (performance.now() - goodScoreStart > 2000) {
+        model = "heavy";
+        initWorker("heavy", DEFAULT_OPTIONS);
+      }
+    }
   } else {
     lowScoreStart = null;
+    goodScoreStart = null;
   }
 }
 
@@ -445,10 +478,12 @@ function updateFps() {
   frames++;
   const now = performance.now();
   if (now - lastFpsTs >= 1000) {
-    const fps = frames / ((now - lastFpsTs) / 1000);
-    fpsEl.innerHTML = `<strong>FPS:</strong> ${fps.toFixed(1)}`;
+    analysisFps = frames / ((now - lastFpsTs) / 1000);
+    fpsEl.innerHTML = `<strong>FPS:</strong> ${analysisFps.toFixed(1)}`;
     frames = 0;
     lastFpsTs = now;
+    return analysisFps;
   }
+  return null;
 }
 
