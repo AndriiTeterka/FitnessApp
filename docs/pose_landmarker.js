@@ -49,7 +49,7 @@ let currentStream = null;
 let worker = null;
 let workerReady = false;
 let workerBusy = false;
-let model = "heavy"; // heavy by default, swaps to lite if tracking degrades
+let model = "full"; // full by default, swaps to lite if tracking degrades
 
 // Processing resolutions; start high and drop if analysis FPS suffers.
 const PROCESS_SIZES = [
@@ -57,15 +57,15 @@ const PROCESS_SIZES = [
   { w: 640, h: 360 },
 ];
 let procSizeIndex = 0;
-const offscreen = new OffscreenCanvas(
-  PROCESS_SIZES[procSizeIndex].w,
-  PROCESS_SIZES[procSizeIndex].h,
-);
 let lastSent = 0;
 let minFrameInterval = 0; // adaptive frame drop when latency is high
 let lowScoreStart = null;
 let goodScoreStart = null;
 let analysisFps = 0;
+const FPS_DROP = 28;
+const FPS_RAISE = 30;
+const SKIP_MS = 33;
+const FRAME_SKIP = 16;
 
 // ---------- Landmark smoothing & gating ---------------------------------------
 
@@ -200,14 +200,13 @@ async function initWorker(modelName, opts) {
     const { type } = e.data;
     if (type === "ready") {
       workerReady = true;
-      chipModel.innerHTML = `Model<strong>${modelName === "lite" ? "Lite" : "Heavy"}</strong>`;
+      chipModel.innerHTML = `Model<strong>${modelName === "lite" ? "Lite" : "Full"}</strong>`;
     } else if (type === "result") {
       workerBusy = false;
-      const { result, ts } = e.data;
+      const { result, ts, inferMs } = e.data;
       handleResult(result, ts);
-      const latency = performance.now() - ts;
       // If inference is slow, drop the next frame to keep UI responsive.
-      minFrameInterval = latency > 33 ? 16 : 0;
+      minFrameInterval = inferMs > SKIP_MS ? FRAME_SKIP : 0;
     }
   };
   worker.postMessage({ type: "init", model: modelName, options: opts });
@@ -231,8 +230,9 @@ async function startCamera() {
   if (currentStream) currentStream.getTracks().forEach((t) => t.stop());
   const constraints = {
     video: {
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
+      width: { ideal: 1280, max: 1280 },
+      height: { ideal: 720, max: 720 },
+      frameRate: { ideal: 30, max: 30 },
       facingMode: usingFrontCamera ? "user" : "environment",
     },
     audio: false,
@@ -259,17 +259,11 @@ async function startCamera() {
 
 function setProcessSize(idx) {
   procSizeIndex = idx;
-  const { w, h } = PROCESS_SIZES[idx];
-  offscreen.width = w;
-  offscreen.height = h;
 }
 
 function applyTransforms() {
-  const transforms = [];
-  if (usingFrontCamera) transforms.push("scaleX(-1)");
   const rotate = video.videoWidth > video.videoHeight;
   if (rotate) {
-    transforms.push("rotate(90deg)");
     const w = video.videoWidth;
     const h = video.videoHeight;
     video.style.width = `${h}px`;
@@ -282,9 +276,6 @@ function applyTransforms() {
     canvas.style.width = "";
     canvas.style.height = "";
   }
-  const t = transforms.join(" ");
-  video.style.transform = t;
-  canvas.style.transform = t;
 }
 
 // ---------- Main loop ---------------------------------------------------------
@@ -294,12 +285,12 @@ function loop() {
   if (!running) return;
   const now = performance.now();
   if (workerReady && !workerBusy && now - lastSent >= minFrameInterval) {
-    const ctxOff = offscreen.getContext("2d");
-    ctxOff.drawImage(video, 0, 0, offscreen.width, offscreen.height);
-    const bitmap = offscreen.transferToImageBitmap();
+    const { w, h } = PROCESS_SIZES[procSizeIndex];
     workerBusy = true;
     lastSent = now;
-    worker.postMessage({ type: "frame", bitmap, ts: now }, [bitmap]);
+    createImageBitmap(video, { resizeWidth: w, resizeHeight: h }).then((bitmap) => {
+      worker.postMessage({ type: "frame", bitmap, ts: now }, [bitmap]);
+    });
   }
   requestAnimationFrame(loop);
 }
@@ -312,8 +303,12 @@ function handleResult(res, ts) {
   evaluateRules(keypoints, ts);
   updatePoseScore(res);
   const fps = updateFps();
-  if (fps && fps < 28 && procSizeIndex === 0) {
-    setProcessSize(1);
+  if (fps) {
+    if (fps < FPS_DROP && procSizeIndex === 0) {
+      setProcessSize(1);
+    } else if (fps > FPS_RAISE && procSizeIndex > 0) {
+      setProcessSize(0);
+    }
   }
 }
 
@@ -351,28 +346,37 @@ function drawKeypointsAndSkeleton(keypoints) {
   const w = canvas.width;
   const h = canvas.height;
   ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  if (usingFrontCamera) {
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
+  }
   const byName = {};
-  keypoints.forEach((p) => {
+  for (let i = 0; i < keypoints.length; i++) {
+    const p = keypoints[i];
     if (p) byName[p.name] = p;
-  });
-  ctx.fillStyle = "#66e0a3";
-  for (const p of keypoints) {
-    if (!p || FACE_LANDMARKS.has(p.name)) continue;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-    ctx.fill();
   }
   ctx.strokeStyle = "#7aa7ff";
   ctx.lineWidth = 3;
+  ctx.beginPath();
   for (const [a, b] of SKELETON_SEGMENTS) {
     const pa = byName[a];
     const pb = byName[b];
     if (!pa || !pb) continue;
-    ctx.beginPath();
     ctx.moveTo(pa.x, pa.y);
     ctx.lineTo(pb.x, pb.y);
-    ctx.stroke();
   }
+  ctx.stroke();
+  ctx.fillStyle = "#66e0a3";
+  ctx.beginPath();
+  for (let i = 0; i < keypoints.length; i++) {
+    const p = keypoints[i];
+    if (!p || FACE_LANDMARKS.has(p.name)) continue;
+    ctx.moveTo(p.x, p.y);
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+  }
+  ctx.fill();
+  ctx.restore();
 }
 
 function evaluateRules(keypoints, ts) {
@@ -443,9 +447,14 @@ function updatePoseScore(res) {
     return;
   }
   const lm = res.landmarks[0];
-  const mean = lm
-    .map((p) => Math.min(p.visibility ?? 0, p.presence ?? 0))
-    .reduce((a, b) => a + b, 0) / lm.length;
+  let sum = 0;
+  for (let i = 0; i < lm.length; i++) {
+    const p = lm[i];
+    const vis = p.visibility ?? 0;
+    const pres = p.presence ?? 0;
+    sum += vis < pres ? vis : pres;
+  }
+  const mean = sum / lm.length;
   el.innerHTML = `<strong>Pose score:</strong> ${mean.toFixed(2)}`;
 
   // Model swapper: degrade to lite when quality drops, recover when stable.
@@ -461,8 +470,8 @@ function updatePoseScore(res) {
     if (model === "lite") {
       if (!goodScoreStart) goodScoreStart = performance.now();
       if (performance.now() - goodScoreStart > 2000) {
-        model = "heavy";
-        initWorker("heavy", DEFAULT_OPTIONS);
+        model = "full";
+        initWorker("full", DEFAULT_OPTIONS);
       }
     }
   } else {

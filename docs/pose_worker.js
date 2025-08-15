@@ -11,8 +11,8 @@ let landmarker = null;
 let options = null;
 
 const MODEL_URLS = {
-  heavy:
-    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task",
+  full:
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
   lite:
     "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
 };
@@ -30,9 +30,11 @@ self.onmessage = async (e) => {
       bitmap.close();
       return;
     }
+    const t0 = performance.now();
     const res = landmarker.detectForVideo(bitmap, ts);
+    const inferMs = performance.now() - t0;
     bitmap.close();
-    self.postMessage({ type: "result", result: res, ts });
+    self.postMessage({ type: "result", result: res, ts, inferMs });
   }
 };
 
