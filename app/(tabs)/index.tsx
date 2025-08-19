@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Link } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -21,19 +22,26 @@ export default function HomeScreen() {
         <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+        <ThemedText type="subtitle">Get Started</ThemedText>
         <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
+          Tap below to launch your camera and run live pose detection.
         </ThemedText>
+        <View style={{ marginTop: 12 }}>
+          <Link
+            href="/pose"
+            style={{
+              backgroundColor: '#4F46E5',
+              paddingVertical: 14,
+              paddingHorizontal: 18,
+              borderRadius: 12,
+              alignSelf: 'flex-start',
+            }}
+          >
+            <ThemedText type="defaultSemiBold" style={{ color: 'white' }}>
+              Start Camera
+            </ThemedText>
+          </Link>
+        </View>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 2: Explore</ThemedText>
