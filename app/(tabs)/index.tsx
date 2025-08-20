@@ -1,83 +1,70 @@
-import tw from '@/lib/tw';
-import { Image } from 'expo-image';
+import tw from '@/utils/tw';
 import { Link } from 'expo-router';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 
 export default function HomeScreen() {
   return (
-    <ScrollView style={tw`flex-1 bg-gray-50`} contentContainerStyle={tw`p-6`}>
-      {/* Header */}
-      <View style={tw`items-center mb-8`}>
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={tw`h-24 w-32 mb-4`}
-        />
-        <ThemedText type="title" style={tw`text-center mb-2`}>FitMotion</ThemedText>
-        <ThemedText style={tw`text-gray-600 text-center text-base`}>
-          Your AI-powered fitness companion
-        </ThemedText>
+    <SafeAreaView edges={['top','left','right']} style={tw`flex-1 bg-gray-50`}>
+    <ScrollView style={tw`flex-1`} contentContainerStyle={tw`p-6`}>
+      <View style={tw`items-center mb-3 mt-1`}>
+        <ThemedText type="title" style={tw`text-center`}>Good Morning!</ThemedText>
+        <ThemedText style={tw`text-gray-600 text-center mt-2`}>Ready for today's workout?</ThemedText>
       </View>
 
-      {/* Quick Actions */}
-      <View style={tw`mb-8`}>
-        <ThemedText type="subtitle" style={tw`mb-4 text-center`}>Quick Start</ThemedText>
-        <View style={tw`gap-4`}>
-          <Link href="/exercises" asChild>
-            <TouchableOpacity style={tw`bg-white p-6 rounded-2xl shadow-sm border border-gray-100`}>
-              <View style={tw`flex-row items-center justify-between`}>
-                <View style={tw`flex-1`}>
-                  <ThemedText type="defaultSemiBold" style={tw`text-lg mb-1`}>Exercise Library</ThemedText>
-                  <ThemedText style={tw`text-gray-600`}>Browse exercises and start your workout</ThemedText>
-                </View>
-                <View style={tw`bg-blue-100 p-3 rounded-full`}>
-                  <ThemedText style={tw`text-blue-600 text-xl`}>🏋️</ThemedText>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </Link>
-
-          {/* Removed Start Motion Capture entry per request */}
+      {/* Stats grid */}
+      <View style={tw`flex-row gap-4 mb-4`}> 
+        <View style={tw`flex-1 bg-white rounded-2xl p-4 border border-gray-100`}> 
+          <ThemedText style={tw`text-3xl font-extrabold text-center`}>5</ThemedText>
+          <ThemedText style={tw`text-gray-600 text-center mt-1`}>Workouts This Week</ThemedText>
+        </View>
+        <View style={tw`flex-1 bg-white rounded-2xl p-4 border border-gray-100`}> 
+          <ThemedText style={tw`text-3xl font-extrabold text-center`}>1,240</ThemedText>
+          <ThemedText style={tw`text-gray-600 text-center mt-1`}>Calories Burned</ThemedText>
+        </View>
+      </View>
+      <View style={tw`flex-row gap-4 mb-8`}>
+        <View style={tw`flex-1 bg-white rounded-2xl p-4 border border-gray-100`}>
+          <ThemedText style={tw`text-3xl font-extrabold text-center`}>12</ThemedText>
+          <ThemedText style={tw`text-gray-600 text-center mt-1`}>Streak Days</ThemedText>
+        </View>
+        <View style={tw`flex-1 bg-white rounded-2xl p-4 border border-gray-100`}>
+          <ThemedText style={tw`text-3xl font-extrabold text-center`}>4h 32m</ThemedText>
+          <ThemedText style={tw`text-gray-600 text-center mt-1`}>Total Time</ThemedText>
         </View>
       </View>
 
-      {/* Features */}
-      <View style={tw`mb-6`}>
-        <ThemedText type="subtitle" style={tw`mb-4 text-center`}>Features</ThemedText>
-        <View style={tw`gap-3`}>
-          <View style={tw`flex-row items-center bg-white p-4 rounded-xl`}>
-            <View style={tw`bg-purple-100 p-2 rounded-full mr-3`}>
-              <ThemedText style={tw`text-purple-600`}>🎯</ThemedText>
-            </View>
-            <View style={tw`flex-1`}>
-              <ThemedText type="defaultSemiBold">Real-time Pose Detection</ThemedText>
-              <ThemedText style={tw`text-gray-600 text-sm`}>AI-powered movement tracking</ThemedText>
-            </View>
-          </View>
+      {/* Quick Start */}
+      <View style={tw`mb-4`}>
+        <ThemedText type="subtitle" style={tw`mb-3`}>Quick Start</ThemedText>
+        <Link href="/exercises" asChild>
+          <TouchableOpacity style={tw`bg-blue-600 rounded-2xl py-4 items-center`}>
+            <ThemedText style={tw`text-white font-bold text-lg`}>Start Workout</ThemedText>
+          </TouchableOpacity>
+        </Link>
+      </View>
 
-          <View style={tw`flex-row items-center bg-white p-4 rounded-xl`}>
-            <View style={tw`bg-orange-100 p-2 rounded-full mr-3`}>
-              <ThemedText style={tw`text-orange-600`}>📊</ThemedText>
+      {/* Recent Workouts */}
+      <View style={tw`mt-6`}>
+        <ThemedText type="subtitle" style={tw`mb-3`}>Recent Workouts</ThemedText>
+        {[
+          { name: 'Upper Body Strength', meta: '45 min', right: 'Today' },
+          { name: 'Cardio HIIT', meta: '30 min', right: 'Yesterday' },
+          { name: 'Core & Abs', meta: '25 min', right: '2 days ago' },
+        ].map((w) => (
+          <View key={w.name} style={tw`bg-white rounded-2xl p-4 mb-3 border border-gray-100`}> 
+            <View style={tw`flex-row justify-between items-center`}>
+              <ThemedText style={tw`font-semibold text-lg`}>{w.name}</ThemedText>
+              <ThemedText style={tw`text-gray-500`}>{w.right}</ThemedText>
             </View>
-            <View style={tw`flex-1`}>
-              <ThemedText type="defaultSemiBold">Exercise Library</ThemedText>
-              <ThemedText style={tw`text-gray-600 text-sm`}>Curated workouts for all levels</ThemedText>
-            </View>
+            <ThemedText style={tw`text-gray-600 mt-1`}>{w.meta}</ThemedText>
           </View>
-
-          <View style={tw`flex-row items-center bg-white p-4 rounded-xl`}>
-            <View style={tw`bg-teal-100 p-2 rounded-full mr-3`}>
-              <ThemedText style={tw`text-teal-600`}>💪</ThemedText>
-            </View>
-            <View style={tw`flex-1`}>
-              <ThemedText type="defaultSemiBold">Form Correction</ThemedText>
-              <ThemedText style={tw`text-gray-600 text-sm`}>Get feedback on your technique</ThemedText>
-            </View>
-          </View>
-        </View>
+        ))}
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

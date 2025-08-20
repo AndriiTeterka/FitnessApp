@@ -23,6 +23,11 @@ export default function TopMenuButton() {
                 <Text style={{ color: '#111827' }}>Exercises</Text>
               </TouchableOpacity>
             </Link>
+            <Link href="/profile" asChild>
+              <TouchableOpacity onPress={() => setOpen(false)} style={{ paddingHorizontal: 14, paddingVertical: 10 }}>
+                <Text style={{ color: '#111827' }}>Profile</Text>
+              </TouchableOpacity>
+            </Link>
           </View>
         </Pressable>
       </Modal>

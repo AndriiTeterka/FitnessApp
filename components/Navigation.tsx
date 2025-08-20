@@ -1,7 +1,7 @@
+import tw from '@/utils/tw';
 import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import tw from '@/lib/tw';
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

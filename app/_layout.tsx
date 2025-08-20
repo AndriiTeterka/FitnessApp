@@ -23,8 +23,7 @@ export default function RootLayout() {
       <View style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="capture" options={{ headerShown: true, title: 'Motion Capture' }} />
-          <Stack.Screen name="exercises" options={{ headerShown: true, title: 'Exercises' }} />
+          <Stack.Screen name="capture" options={{ headerShown: true, title: 'Motion Tracker' }} />
           <Stack.Screen name="pose" options={{ headerShown: true, title: 'Pose Detection' }} />
           <Stack.Screen name="+not-found" />
         </Stack>
