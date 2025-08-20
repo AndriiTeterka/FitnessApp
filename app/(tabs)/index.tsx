@@ -1,83 +1,84 @@
+import tw from '@/lib/tw';
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
+    <ScrollView style={tw`flex-1 bg-gray-50`} contentContainerStyle={tw`p-6`}>
+      {/* Header */}
+      <View style={tw`items-center mb-8`}>
         <Image
           source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+          style={tw`h-24 w-32 mb-4`}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Get Started</ThemedText>
-        <ThemedText>
-          Tap below to launch your camera and run live pose detection.
+        <ThemedText type="title" style={tw`text-center mb-2`}>FitMotion</ThemedText>
+        <ThemedText style={tw`text-gray-600 text-center text-base`}>
+          Your AI-powered fitness companion
         </ThemedText>
-        <View style={{ marginTop: 12 }}>
-          <Link
-            href="/pose"
-            style={{
-              backgroundColor: '#4F46E5',
-              paddingVertical: 14,
-              paddingHorizontal: 18,
-              borderRadius: 12,
-              alignSelf: 'flex-start',
-            }}
-          >
-            <ThemedText type="defaultSemiBold" style={{ color: 'white' }}>
-              Start Camera
-            </ThemedText>
+      </View>
+
+      {/* Quick Actions */}
+      <View style={tw`mb-8`}>
+        <ThemedText type="subtitle" style={tw`mb-4 text-center`}>Quick Start</ThemedText>
+        <View style={tw`gap-4`}>
+          <Link href="/exercises" asChild>
+            <TouchableOpacity style={tw`bg-white p-6 rounded-2xl shadow-sm border border-gray-100`}>
+              <View style={tw`flex-row items-center justify-between`}>
+                <View style={tw`flex-1`}>
+                  <ThemedText type="defaultSemiBold" style={tw`text-lg mb-1`}>Exercise Library</ThemedText>
+                  <ThemedText style={tw`text-gray-600`}>Browse exercises and start your workout</ThemedText>
+                </View>
+                <View style={tw`bg-blue-100 p-3 rounded-full`}>
+                  <ThemedText style={tw`text-blue-600 text-xl`}>🏋️</ThemedText>
+                </View>
+              </View>
+            </TouchableOpacity>
           </Link>
+
+          {/* Removed Start Motion Capture entry per request */}
         </View>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+
+      {/* Features */}
+      <View style={tw`mb-6`}>
+        <ThemedText type="subtitle" style={tw`mb-4 text-center`}>Features</ThemedText>
+        <View style={tw`gap-3`}>
+          <View style={tw`flex-row items-center bg-white p-4 rounded-xl`}>
+            <View style={tw`bg-purple-100 p-2 rounded-full mr-3`}>
+              <ThemedText style={tw`text-purple-600`}>🎯</ThemedText>
+            </View>
+            <View style={tw`flex-1`}>
+              <ThemedText type="defaultSemiBold">Real-time Pose Detection</ThemedText>
+              <ThemedText style={tw`text-gray-600 text-sm`}>AI-powered movement tracking</ThemedText>
+            </View>
+          </View>
+
+          <View style={tw`flex-row items-center bg-white p-4 rounded-xl`}>
+            <View style={tw`bg-orange-100 p-2 rounded-full mr-3`}>
+              <ThemedText style={tw`text-orange-600`}>📊</ThemedText>
+            </View>
+            <View style={tw`flex-1`}>
+              <ThemedText type="defaultSemiBold">Exercise Library</ThemedText>
+              <ThemedText style={tw`text-gray-600 text-sm`}>Curated workouts for all levels</ThemedText>
+            </View>
+          </View>
+
+          <View style={tw`flex-row items-center bg-white p-4 rounded-xl`}>
+            <View style={tw`bg-teal-100 p-2 rounded-full mr-3`}>
+              <ThemedText style={tw`text-teal-600`}>💪</ThemedText>
+            </View>
+            <View style={tw`flex-1`}>
+              <ThemedText type="defaultSemiBold">Form Correction</ThemedText>
+              <ThemedText style={tw`text-gray-600 text-sm`}>Get feedback on your technique</ThemedText>
+            </View>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+
