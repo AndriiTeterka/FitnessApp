@@ -1,8 +1,10 @@
 import { ExerciseCard } from '@/components/ExerciseCard';
 import FilterSheet from '@/components/FilterSheet';
+import SegmentControl from '@/components/SegmentControl';
 import tw from '@/utils/tw';
 import React, { useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Exercise = {
@@ -156,26 +158,33 @@ export default function Exercises() {
   }, [search, goal, env, selectedMuscles, difficulty, trackingOnly]);
 
   return (
-    <SafeAreaView edges={['top','left','right']} style={tw`flex-1 bg-gray-50`}>
+    <SafeAreaView edges={['top','left','right']} style={tw`flex-1 bg-[#0b0f19]`}>
     <ScrollView style={tw`flex-1`} contentContainerStyle={tw`p-4`}>
       <View style={tw`items-center mb-3`}>
-        <Text style={tw`text-3xl font-extrabold text-gray-900`}>Exercises</Text>
-        <Text style={tw`text-gray-600 text-center mt-1`}>Choose your workout</Text>
+        <Text style={tw`text-white`}>
+          <Text style={{ fontFamily: 'Urbanist_700Bold', fontSize: 30, lineHeight: 36 }}>Exercises</Text>
+        </Text>
+        <Text style={tw`text-gray-400 text-center mt-1`}>Choose your workout</Text>
       </View>
 
       {/* Search and filters (visual only) */}
       <TextInput
         placeholder="Search exercises..."
-        placeholderTextColor="#9CA3AF"
         value={search}
         onChangeText={setSearch}
-        style={tw`bg-white border border-gray-200 rounded-2xl px-4 py-3 mb-3`}
+        mode="outlined"
+        style={tw`mb-3`}
       />
       {/* Alternative filter control */}
       <View style={tw`mb-3`}>
-        <View style={tw`flex-row justify-between`}>
-          <Text style={tw`text-gray-800`}>Filters</Text>
-          <Text style={tw`text-blue-600`} onPress={() => setSheetOpen(true)}>Open</Text>
+        <SegmentControl
+          options={[ 'All', 'Beginner', 'Intermediate', 'Advanced' ] as const}
+          value={difficulty as 'All' | 'Beginner' | 'Intermediate' | 'Advanced'}
+          onChange={(d) => setDifficulty(d as any)}
+        />
+        <View style={tw`flex-row justify-between mt-3`}>
+          <Text style={tw`text-white`}>Filters</Text>
+          <Text style={tw`text-yellow-200`} onPress={() => setSheetOpen(true)}>Open</Text>
         </View>
       </View>
       <FilterSheet

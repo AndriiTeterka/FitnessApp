@@ -1,7 +1,8 @@
+import { ThemedText } from '@/components/ThemedText';
 import { tw } from '@/utils/tw';
 import { CameraView as ExpoCameraView, useCameraPermissions } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 type Props = { isActive: boolean; onPermissionChange?: (b: boolean) => void };
 
@@ -32,8 +33,8 @@ export function CameraView({ isActive, onPermissionChange }: Props) {
 
   if (hasPermission === false) {
     return (
-      <View style={tw`bg-gray-100 rounded-lg items-center justify-center h-60`}>
-        <Text style={tw`text-gray-500`}>Camera permission is required</Text>
+      <View style={tw`bg-[#1f2937] rounded-lg items-center justify-center h-60`}>
+        <ThemedText variant="bodyMedium" style={tw`text-gray-400`}>Camera permission is required</ThemedText>
       </View>
     );
   }
@@ -43,8 +44,8 @@ export function CameraView({ isActive, onPermissionChange }: Props) {
       {isActive ? (
         <ExpoCameraView ref={camRef} style={tw`w-full h-full`} facing={'front'} />
       ) : (
-        <View style={tw`bg-gray-100 w-full h-full items-center justify-center`}>
-          <Text style={tw`text-sm text-gray-500`}>Click "Start Tracking" to activate the camera</Text>
+        <View style={tw`bg-[#1f2937] w-full h-full items-center justify-center`}>
+          <ThemedText variant="bodySmall" style={tw`text-gray-400`}>Click "Start Tracking" to activate the camera</ThemedText>
         </View>
       )}
     </View>

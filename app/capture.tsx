@@ -108,16 +108,16 @@ export default function Capture() {
     </body>
   </html>` as const, []);
   return (
-    <View style={tw`flex-1 bg-gray-50`}>
+    <View style={tw`flex-1 bg-[#0b0f19]`}>
       {/* Header */}
       <View style={tw`px-6 py-6`}>
-        <Text style={tw`text-3xl font-extrabold text-gray-900 text-center mb-1`}>Motion Tracker</Text>
-        <Text style={tw`text-gray-600 text-center`}>AI-powered posture correction</Text>
+        <Text style={tw`text-3xl font-extrabold text-white text-center mb-1`}>Motion Tracker</Text>
+        <Text style={tw`text-gray-400 text-center`}>AI-powered posture correction</Text>
       </View>
 
       {/* Camera Container */}
       <View style={tw`mx-4 mb-6`}>
-        <View style={tw`bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100`}>
+        <View style={tw`bg-[#111827] rounded-2xl overflow-hidden border border-[#1f2937]`}>
           <View style={[tw`relative`, { height: cameraHeight }]}>
             {isCapturing ? (
               <WebView
@@ -136,8 +136,8 @@ export default function Capture() {
                 } : {})}
               />
             ) : (
-              <View style={tw`bg-gray-100 w-full h-full items-center justify-center`}>
-                <Text style={tw`text-sm text-gray-500`}>Press Start to begin posture tracking</Text>
+              <View style={tw`bg-[#1f2937] w-full h-full items-center justify-center`}>
+                <Text style={tw`text-sm text-gray-400`}>Press Start to begin posture tracking</Text>
               </View>
             )}
             {/* Floating control */}
@@ -146,11 +146,11 @@ export default function Capture() {
                 onPress={() => setIsCapturing((v) => !v)}
                 style={tw.style(
                   `rounded-full py-3 items-center mx-auto w-60`,
-                  isCapturing ? `bg-red-600` : `bg-blue-600`
+                  isCapturing ? `bg-red-600` : `bg-yellow-200`
                 )}
                 activeOpacity={0.9}
               >
-                <Text style={tw`text-white font-bold`}>
+                <Text style={tw`${isCapturing ? 'text-white' : 'text-black'} font-bold`}>
                   {isCapturing ? 'Stop' : 'Start'}
                 </Text>
               </TouchableOpacity>
@@ -161,9 +161,9 @@ export default function Capture() {
 
       {/* Instructions */}
       <View style={tw`mx-4`}>
-        <View style={tw`bg-blue-50 rounded-2xl p-4 border border-blue-100`}>
-          <Text style={tw`text-blue-900 font-semibold mb-2`}>Real-time Feedback</Text>
-          <Text style={tw`text-blue-800 text-sm`}>Maintain head up, neutral spine, and engage core.</Text>
+        <View style={tw`bg-[#111827] rounded-2xl p-4 border border-[#1f2937]`}>
+          <Text style={tw`text-white font-semibold mb-2`}>Real-time Feedback</Text>
+          <Text style={tw`text-gray-300 text-sm`}>Maintain head up, neutral spine, and engage core.</Text>
         </View>
       </View>
     </View>

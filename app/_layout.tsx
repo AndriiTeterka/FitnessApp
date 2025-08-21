@@ -1,16 +1,20 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Urbanist_400Regular, Urbanist_600SemiBold, Urbanist_700Bold } from '@expo-google-fonts/urbanist';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { PaperProvider } from 'react-native-paper';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { darkTheme } from '@/constants/paperTheme';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Urbanist_400Regular,
+    Urbanist_600SemiBold,
+    Urbanist_700Bold,
   });
 
   if (!loaded) {
@@ -18,17 +22,20 @@ export default function RootLayout() {
     return null;
   }
 
+  const isDark = true; // Force dark design
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <View style={{ flex: 1 }}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="capture" options={{ headerShown: true, title: 'Motion Tracker' }} />
-          <Stack.Screen name="pose" options={{ headerShown: true, title: 'Pose Detection' }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </View>
+    <ThemeProvider value={DarkTheme}>
+      <PaperProvider theme={darkTheme}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#f9fafb' }}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="capture" options={{ headerShown: true, title: 'Motion Tracker' }} />
+            <Stack.Screen name="pose" options={{ headerShown: true, title: 'Pose Detection' }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+        </View>
+      </PaperProvider>
     </ThemeProvider>
   );
 }
