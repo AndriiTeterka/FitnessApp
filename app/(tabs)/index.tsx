@@ -48,7 +48,7 @@ export default function HomeScreen() {
       {/* Quick Start */}
       <View style={tw`mb-4`}>
         <ThemedText variant="headlineSmall" style={tw`mb-3 text-white`}>Quick Start</ThemedText>
-        <Link href="/exercises" asChild>
+        <Link href="/customize-workout" asChild>
           <Button mode="contained" style={tw`rounded-2xl`} contentStyle={tw`py-2`}>
             Start Workout
           </Button>

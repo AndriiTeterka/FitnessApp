@@ -29,9 +29,11 @@ export default function RootLayout() {
         <View style={{ flex: 1, backgroundColor: isDark ? '#0b0f19' : '#f9fafb' }}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="capture" options={{ headerShown: true, title: 'Motion Tracker' }} />
-            <Stack.Screen name="pose" options={{ headerShown: true, title: 'Pose Detection' }} />
-            <Stack.Screen name="+not-found" />
+                      <Stack.Screen name="capture" options={{ headerShown: true, title: 'Motion Tracker' }} />
+          <Stack.Screen name="pose" options={{ headerShown: true, title: 'Pose Detection' }} />
+          <Stack.Screen name="customize-workout" options={{ headerShown: false }} />
+          <Stack.Screen name="workout-details" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
           </Stack>
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </View>
