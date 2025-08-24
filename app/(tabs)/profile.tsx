@@ -1,4 +1,4 @@
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { Button, Card } from 'react-native-paper';
@@ -48,7 +48,7 @@ export default function ProfileScreen() {
 
       {/* Progress */}
       <View style={tw`bg-[#111827] rounded-2xl p-4 border border-[#1f2937]`}>
-        <Text style={tw`font-semibold text-white mb-2`}>This Week's Progress</Text>
+        <Text style={tw`font-semibold text-white mb-2`}>This Week&apos;s Progress</Text>
         <View style={tw`flex-row justify-between`}>
           <Text style={tw`text-gray-400`}>Workouts Completed</Text>
           <Text style={tw`text-white font-semibold`}>5/7</Text>

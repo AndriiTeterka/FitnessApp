@@ -1,5 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import React from 'react';
 import { View } from 'react-native';
 import { Button, IconButton } from 'react-native-paper';

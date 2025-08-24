@@ -1,4 +1,4 @@
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';

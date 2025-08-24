@@ -1,6 +1,6 @@
 import SheetHandle from '@/components/SheetHandle';
 import { ThemedText } from '@/components/ThemedText';
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { Button, Chip } from 'react-native-paper';

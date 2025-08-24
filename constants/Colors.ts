@@ -4,7 +4,8 @@
  */
 
 const tintColorLight = '#2563EB';
-const tintColorDark = '#fff';
+// Primary accent used throughout the dark theme
+const tintColorDark = '#FFD645';
 
 export const Colors = {
   light: {
@@ -16,11 +17,25 @@ export const Colors = {
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#FFFFFF',
+    background: '#151618',
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
   },
+};
+
+// Color palette for the redesigned Home screen
+// Primary:    #FFD645
+// Secondary:  #222327
+// Tertiary:   #292C3F
+// Quaternary: #151618
+// Quinary:    #FFFFFF
+export const Palette = {
+  primary: '#FFD645',
+  secondary: '#222327',
+  tertiary: '#292C3F',
+  quaternary: '#151618',
+  quinary: '#FFFFFF',
 };

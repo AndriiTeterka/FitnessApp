@@ -1,4 +1,4 @@
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import React, { useMemo, useState } from 'react';
 import { Dimensions, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
