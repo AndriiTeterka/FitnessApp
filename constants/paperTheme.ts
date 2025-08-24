@@ -1,9 +1,5 @@
 import { MD3DarkTheme, MD3LightTheme, type MD3Theme } from 'react-native-paper';
 
-// Reuse Tailwind theme colors for consistent design tokens
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const tailwindConfig = require('../tailwind.config.js');
-
 // Brand highlight (yellow) to match reference design
 const brandYellow = '#fef08a'; // Tailwind yellow-200 like pill
 const brandYellowText = '#171717';

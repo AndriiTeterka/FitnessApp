@@ -1,5 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';

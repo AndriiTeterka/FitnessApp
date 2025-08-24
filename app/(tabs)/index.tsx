@@ -1,13 +1,21 @@
 import { Palette } from '@/constants/Colors';
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import { Link } from 'expo-router';
-import { Dumbbell } from 'lucide-react-native';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { Dumbbell, Clock3, Flame, Heart, LucideIcon } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+}) {
   return (
     <View
       style={[
@@ -15,10 +23,16 @@ function StatCard({ label, value }: { label: string; value: string }) {
         { backgroundColor: Palette.secondary },
       ]}
     >
-      <ThemedText variant="bodySmall" style={tw`text-white/70`}>{label}</ThemedText>
+      <Icon size={20} color={Palette.primary} />
+      <ThemedText
+        variant="bodySmall"
+        style={tw`text-white/70 mt-2`}
+      >
+        {label}
+      </ThemedText>
       <ThemedText
         variant="titleMedium"
-        style={tw`text-white font-bold mt-1`}
+        style={[tw`font-bold mt-1`, { color: Palette.primary }]}
       >
         {value}
       </ThemedText>
@@ -95,18 +109,30 @@ export default function HomeScreen() {
 
         {/* Stats */}
         <View style={tw`flex-row gap-3 mb-10`}>
-          <StatCard label="Calories" value="820" />
-          <StatCard label="Workout Time" value="45 min" />
-          <StatCard label="Heart Rate" value="118 bpm" />
+          <StatCard label="Calories" value="820" icon={Flame} />
+          <StatCard label="Workout Time" value="45 min" icon={Clock3} />
+          <StatCard label="Heart Rate" value="118 bpm" icon={Heart} />
         </View>
 
         {/* Recent Workouts */}
-        <ThemedText
-          variant="titleMedium"
-          style={tw`text-white font-bold mb-4`}
-        >
-          Recent Workouts
-        </ThemedText>
+        <View style={tw`flex-row items-center justify-between mb-4`}>
+          <ThemedText
+            variant="titleMedium"
+            style={tw`text-white font-bold`}
+          >
+            Recent Workouts
+          </ThemedText>
+          <Link href="/workouts" asChild>
+            <TouchableOpacity>
+              <ThemedText
+                variant="bodySmall"
+                style={tw`text-white/70`}
+              >
+                See all
+              </ThemedText>
+            </TouchableOpacity>
+          </Link>
+        </View>
         {[
           { name: 'Full Body', meta: 'Apr 22 - 30 min - 320', status: 'COMPLETED' },
           { name: 'HIIT', meta: 'Apr 20 - 20 min - 280', status: 'COMPLETED' },
@@ -136,4 +162,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-

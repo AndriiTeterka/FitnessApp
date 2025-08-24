@@ -1,7 +1,7 @@
 import { ExerciseCard } from '@/components/ExerciseCard';
 import FilterSheet from '@/components/FilterSheet';
 import SegmentControl from '@/components/SegmentControl';
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import React, { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
@@ -142,8 +142,8 @@ export default function Exercises() {
   const [trackingOnly, setTrackingOnly] = useState<boolean>(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const goals: Array<Exercise['goal'] | 'All'> = ['All','Fat loss','Hypertrophy','Strength','Endurance','Power','Mobility','Stability','Posture','Rehab'];
-  const envs: Array<Exercise['environment'] | 'All'> = ['All','Home','Gym','Outdoor','Office/Travel'];
+  const goals: (Exercise['goal'] | 'All')[] = ['All','Fat loss','Hypertrophy','Strength','Endurance','Power','Mobility','Stability','Posture','Rehab'];
+  const envs: (Exercise['environment'] | 'All')[] = ['All','Home','Gym','Outdoor','Office/Travel'];
 
   const filtered = useMemo(() => {
     return EXERCISES.filter((ex) => {

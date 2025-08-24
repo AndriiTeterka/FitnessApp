@@ -4,7 +4,8 @@
  */
 
 const tintColorLight = '#2563EB';
-const tintColorDark = '#fff';
+// Primary accent used throughout the dark theme
+const tintColorDark = '#FFD645';
 
 export const Colors = {
   light: {
@@ -16,8 +17,8 @@ export const Colors = {
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#FFFFFF',
+    background: '#151618',
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',

@@ -45,7 +45,7 @@ export function CameraView({ isActive, onPermissionChange }: Props) {
         <ExpoCameraView ref={camRef} style={tw`w-full h-full`} facing={'front'} />
       ) : (
         <View style={tw`bg-[#1f2937] w-full h-full items-center justify-center`}>
-          <ThemedText variant="bodySmall" style={tw`text-gray-400`}>Click "Start Tracking" to activate the camera</ThemedText>
+          <ThemedText variant="bodySmall" style={tw`text-gray-400`}>Click &quot;Start Tracking&quot; to activate the camera</ThemedText>
         </View>
       )}
     </View>

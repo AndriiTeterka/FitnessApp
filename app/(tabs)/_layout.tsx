@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
+import { Colors, Palette } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
@@ -14,19 +14,20 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Palette.primary,
+        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].icon,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
             position: 'absolute',
-            backgroundColor: colorScheme === 'dark' ? '#111827' : '#ffffff',
-            borderTopColor: colorScheme === 'dark' ? '#1f2937' : '#e5e7eb',
+            backgroundColor: colorScheme === 'dark' ? Palette.quaternary : '#ffffff',
+            borderTopColor: colorScheme === 'dark' ? Palette.secondary : '#e5e7eb',
           },
           default: {
-            backgroundColor: colorScheme === 'dark' ? '#111827' : '#ffffff',
-            borderTopColor: colorScheme === 'dark' ? '#1f2937' : '#e5e7eb',
+            backgroundColor: colorScheme === 'dark' ? Palette.quaternary : '#ffffff',
+            borderTopColor: colorScheme === 'dark' ? Palette.secondary : '#e5e7eb',
           },
         }),
         tabBarLabelStyle: { fontFamily: 'Urbanist_600SemiBold', fontSize: 12 },
@@ -61,7 +62,7 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           href: '/explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="explore" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="safari.fill" color={color} />,
         }}
       />
     </Tabs>
