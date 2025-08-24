@@ -118,22 +118,65 @@ async function deleteAllCloudinaryImages() {
 }
 
 async function uploadToCloudinary(filePath) {
-  if (!(shouldUpload && cloudName && unsignedPreset)) return null;
+  if (!(shouldUpload && cloudName)) return null;
 
   const base64 = await fs.promises.readFile(filePath, { encoding: 'base64' });
-  const form = new FormData();
-  form.append('upload_preset', unsignedPreset);
-  form.append('file', `data:image/png;base64,${base64}`);
+  
+  // Try signed upload first
+  const apiKey = cloudinaryConfig.apiKey || process.env.CLOUDINARY_API_KEY;
+  const apiSecret = cloudinaryConfig.apiSecret || process.env.CLOUDINARY_API_SECRET;
+  
+  console.log(`Upload method: apiKey=${!!apiKey}, apiSecret=${!!apiSecret}`);
+  
+  if (apiKey && apiSecret) {
+    // Use signed upload
+    console.log('Using signed upload method');
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const cleanPublicId = `screenshot-${Date.now()}`;
+    
+    // Generate signature with all parameters that need to be signed
+    const paramsToSign = `public_id=${cleanPublicId}&timestamp=${timestamp}`;
+    const signature = generateSignature(paramsToSign, apiSecret);
+    
+    const formData = new URLSearchParams();
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('public_id', cleanPublicId);
+    formData.append('file', `data:image/png;base64,${base64}`);
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: form });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error?.message || 'Cloudinary upload failed');
-  return {
-    url: json.secure_url || json.url,
-    publicId: json.public_id,
-    width: json.width,
-    height: json.height,
-  };
+    console.log('Form data being sent (signed):');
+    console.log('api_key:', apiKey);
+    console.log('timestamp:', timestamp);
+    console.log('signature:', signature);
+    console.log('public_id:', cleanPublicId);
+    console.log('file: [base64 data]');
+
+    console.log(`Uploading to Cloudinary: cloudName=${cloudName}`);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { 
+      method: 'POST', 
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData 
+    });
+    const json = await res.json();
+    
+    if (!res.ok) {
+      console.log(`Upload failed with status ${res.status}:`, json);
+      throw new Error(json.error?.message || 'Cloudinary upload failed');
+    }
+    
+    console.log('Upload successful:', json.public_id);
+    return {
+      url: json.secure_url || json.url,
+      publicId: json.public_id,
+      width: json.width,
+      height: json.height,
+    };
+  } else {
+    throw new Error('No upload method available - missing API credentials');
+  }
 }
 
 async function maybeUploadAndRecord(page, position, filePath) {

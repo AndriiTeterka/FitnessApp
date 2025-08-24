@@ -138,5 +138,85 @@
     "width": 1080,
     "height": 2340,
     "timestamp": "2025-08-22T16:22:12.377Z"
+  },
+  {
+    "page": "home",
+    "position": "top",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-top.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756032450/screenshot-1756032462649.png",
+    "publicId": "screenshot-1756032462649",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T10:47:44.519Z"
+  },
+  {
+    "page": "home",
+    "position": "bottom",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-bottom.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756032453/screenshot-1756032467498.png",
+    "publicId": "screenshot-1756032467498",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T10:47:48.248Z"
+  },
+  {
+    "page": "home",
+    "position": "top",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-top.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756033046/screenshot-1756033059424.png",
+    "publicId": "screenshot-1756033059424",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T10:57:40.836Z"
+  },
+  {
+    "page": "home",
+    "position": "bottom",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-bottom.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756033049/screenshot-1756033063642.png",
+    "publicId": "screenshot-1756033063642",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T10:57:44.402Z"
+  },
+  {
+    "page": "home",
+    "position": "top",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-top.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756033125/screenshot-1756033138164.png",
+    "publicId": "screenshot-1756033138164",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T10:58:59.582Z"
+  },
+  {
+    "page": "home",
+    "position": "bottom",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-bottom.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756033128/screenshot-1756033142423.png",
+    "publicId": "screenshot-1756033142423",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T10:59:03.036Z"
+  },
+  {
+    "page": "home",
+    "position": "top",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-top.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756033218/screenshot-1756033230893.png",
+    "publicId": "screenshot-1756033230893",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T11:00:32.456Z"
+  },
+  {
+    "page": "home",
+    "position": "bottom",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-bottom.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756033221/screenshot-1756033235305.png",
+    "publicId": "screenshot-1756033235305",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T11:00:36.071Z"
   }
 ]
