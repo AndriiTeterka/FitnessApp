@@ -56,6 +56,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.circle" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Explore',
+          href: '/explore',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="explore" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

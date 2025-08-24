@@ -1,0 +1,13 @@
+{
+  "platformName": "Android",
+  "appium:deviceName": "R5CY20BA53B",
+  "appium:udid": "R5CY20BA53B",
+  "appium:automationName": "UiAutomator2",
+  "appium:appPackage": "com.andriiteterka.andriiteterkaapp",
+  "appium:appActivity": ".MainActivity",
+  "appium:appWaitActivity": ".*",
+  "appium:appWaitForLaunch": true,
+  "appium:noReset": true,
+  "appium:newCommandTimeout": 240,
+  "appium:autoGrantPermissions": true
+}

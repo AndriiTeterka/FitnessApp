@@ -1,0 +1,31 @@
+{
+  "startSession": {
+    "platformName": "Android",
+    "deviceName": "R5CY20BA53B",
+    "udid": "R5CY20BA53B",
+    "automationName": "UiAutomator2",
+    "appPackage": "com.andriiteterka.andriiteterkaapp",
+    "appActivity": ".MainActivity",
+    "noReset": true,
+    "appiumUrl": "http://127.0.0.1:4723",
+    "screenshotDir": ".appium-screens"
+  },
+  "waitForStartButton": {
+    "selector": "startWorkoutButton",
+    "strategy": "accessibility id",
+    "timeoutMs": 15000
+  },
+  "tapStartButton": {
+    "selector": "startWorkoutButton",
+    "strategy": "accessibility id"
+  },
+  "hasCustomizeText": {
+    "text": "Customize Workout"
+  },
+  "screenshot": {
+    "name": "after-start-workout"
+  },
+  "closeSession": {
+    "random_string": "close"
+  }
+}
