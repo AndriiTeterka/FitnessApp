@@ -1,8 +1,8 @@
 import { Palette } from '@/constants/Colors';
 import { tw } from '@/utils/tw';
 import { Link } from 'expo-router';
+import { Clock3, Dumbbell, Flame, Heart, LucideIcon } from 'lucide-react-native';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { Dumbbell, Clock3, Flame, Heart, LucideIcon } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
