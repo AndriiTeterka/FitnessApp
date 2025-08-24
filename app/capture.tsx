@@ -1,11 +1,12 @@
 import { Palette } from '@/constants/Colors';
 import { tw } from '@/utils/tw';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, CheckCircle, Dumbbell, Flame, RotateCcw, SkipForward, Snowflake } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
+import { getWorkout } from '@/lib/workouts';
 
 function CircularTimer({ 
   elapsedTime, 
@@ -166,6 +167,9 @@ function CircularTimer({
   );
 }
 
+type RestPhase = 'none' | 'between_sets' | 'between_exercises';
+type ExerciseItem = { id: number; name: string; duration?: string | null; sets: number; reps: number | null; icon: any; color: string };
+
 function ExerciseList({
   currentExercise,
   totalExercises,
@@ -177,7 +181,12 @@ function ExerciseList({
   onSkipRest,
   isRest,
   skippedExercises,
-  nextExercise,
+  restPhase,
+  restTargetExercise,
+  selectedExerciseId,
+  warmupExercises,
+  mainExercises,
+  cooldownExercises,
 }: {
   currentExercise: number;
   totalExercises: number;
@@ -189,38 +198,46 @@ function ExerciseList({
   onSkipRest: () => void;
   isRest: boolean;
   skippedExercises: number[];
-  nextExercise: number;
+  restPhase: RestPhase;
+  restTargetExercise: number | null;
+  selectedExerciseId: number | null;
+  warmupExercises: ExerciseItem[];
+  mainExercises: ExerciseItem[];
+  cooldownExercises: ExerciseItem[];
 }) {
   const progressPercentage = useMemo(() => 
     Math.round((currentExercise / totalExercises) * 100), 
     [currentExercise, totalExercises]
   );
 
-  // Sample exercise data organized by sections
-  const warmupExercises = [
-    { id: 1, name: "Arm Circles", duration: "30s", sets: 1, reps: null, icon: Flame, color: '#EF4444' },
-    { id: 2, name: "Shoulder Rolls", duration: "30s", sets: 1, reps: null, icon: Flame, color: '#EF4444' },
-  ];
-
-  const mainExercises = [
-    { id: 3, name: "Push-ups", sets: 3, reps: 12, duration: null, icon: Dumbbell, color: '#F59E0B' },
-    { id: 4, name: "Dumbbell Rows", sets: 3, reps: 12, duration: null, icon: Dumbbell, color: '#F59E0B' },
-    { id: 5, name: "Shoulder Press", sets: 3, reps: 12, duration: null, icon: Dumbbell, color: '#F59E0B' },
-    { id: 6, name: "Tricep Dips", sets: 3, reps: 12, duration: null, icon: Dumbbell, color: '#F59E0B' },
-    { id: 7, name: "Bicep Curls", sets: 3, reps: 12, duration: null, icon: Dumbbell, color: '#F59E0B' },
-  ];
-
-  const cooldownExercises = [
-    { id: 8, name: "Stretching", duration: "60s", sets: 1, reps: null, icon: Snowflake, color: '#3B82F6' },
-    { id: 9, name: "Deep Breathing", duration: "30s", sets: 1, reps: null, icon: Snowflake, color: '#3B82F6' },
-  ];
+  const warmupCount = warmupExercises.length;
+  const mainCount = mainExercises.length;
+  const cooldownCount = cooldownExercises.length;
 
   const getExerciseStatus = (exerciseId: number) => {
-    if (skippedExercises.includes(exerciseId)) return 'skipped';
-    if (exerciseId < currentExercise) return 'completed';
+    // Current exercise takes precedence
     if (exerciseId === currentExercise) return 'current';
-    if (isRest && exerciseId === nextExercise) return 'next';
-    return 'upcoming';
+
+    if (isRest) {
+      if (restPhase === 'between_sets') {
+        if (exerciseId < currentExercise) {
+          return skippedExercises.includes(exerciseId) ? 'skipped' : 'completed';
+        }
+        return skippedExercises.includes(exerciseId) ? 'skipped' : 'upcoming';
+      }
+      if (restPhase === 'between_exercises') {
+        if (exerciseId <= currentExercise) {
+          return skippedExercises.includes(exerciseId) ? 'skipped' : 'completed';
+        }
+        if (restTargetExercise != null && exerciseId === restTargetExercise) return 'next';
+        return skippedExercises.includes(exerciseId) ? 'skipped' : 'upcoming';
+      }
+    }
+
+    if (exerciseId < currentExercise) {
+      return skippedExercises.includes(exerciseId) ? 'skipped' : 'completed';
+    }
+    return skippedExercises.includes(exerciseId) ? 'skipped' : 'upcoming';
   };
 
   const getStatusColor = (status: string, exerciseColor: string) => {
@@ -247,11 +264,16 @@ function ExerciseList({
     const status = getExerciseStatus(exercise.id);
     const isCurrent = status === 'current';
     const isNext = status === 'next';
-    const isHighlighted = isCurrent || isNext;
+    const isSelected = selectedExerciseId === exercise.id;
+    const isHighlighted = isCurrent || isNext || isSelected;
     
-    // Determine if exercise should show complete button
-    const canComplete = isCurrent && exercise.sets > 1 && !isRest;
-    const canSkipRest = isCurrent && isRest;
+    // Determine if exercise should show complete button (warmup/cooldown also have it)
+    const canComplete = isCurrent && !isRest;
+    // Skip rest appears on current for between_sets, and on target for between_exercises
+    const canSkipRest = isRest && (
+      (restPhase === 'between_sets' && exercise.id === currentExercise) ||
+      (restPhase === 'between_exercises' && restTargetExercise != null && exercise.id === restTargetExercise)
+    );
     
     // Determine if exercise should have rest periods (only main exercises)
     const hasRestPeriods = exercise.id >= 3 && exercise.id <= 7;
@@ -371,9 +393,9 @@ function ExerciseList({
   };
 
   const renderProgressBar = () => {
-    const warmupWidth = (warmupExercises.length / totalExercises) * 100;
-    const mainWidth = (mainExercises.length / totalExercises) * 100;
-    const cooldownWidth = (cooldownExercises.length / totalExercises) * 100;
+    const warmupWidth = (warmupCount / totalExercises) * 100;
+    const mainWidth = (mainCount / totalExercises) * 100;
+    const cooldownWidth = (cooldownCount / totalExercises) * 100;
 
     return (
       <View style={tw`flex-row h-2 rounded-full mb-6 overflow-hidden`}>
@@ -444,7 +466,7 @@ function ExerciseList({
       <ScrollView style={tw`max-h-80`} showsVerticalScrollIndicator={false}>
         {/* Warm Up Section */}
         <TouchableOpacity
-          onPress={() => onExerciseTap(1)}
+          onPress={() => onExerciseTap(warmupExercises[0]?.id ?? 1)}
           activeOpacity={0.8}
           style={tw`mb-6`}
         >
@@ -470,7 +492,7 @@ function ExerciseList({
 
         {/* Cool Down Section */}
         <TouchableOpacity
-          onPress={() => onExerciseTap(8)}
+          onPress={() => onExerciseTap(cooldownExercises[0]?.id ?? (warmupCount + mainCount + 1))}
           activeOpacity={0.8}
           style={tw`mb-6`}
         >
@@ -648,28 +670,69 @@ function ConfirmResetModal({
 }
 
 export default function Capture() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const plan = useMemo(() => getWorkout(id as string | undefined), [id]);
+
+  // Build workout arrays from plan
+  const warmupArr: ExerciseItem[] = useMemo(() => plan.warmup.map((w, i) => ({
+    id: i + 1,
+    name: w.name,
+    duration: `${w.durationSec}s`,
+    sets: 1,
+    reps: null,
+    icon: Flame,
+    color: '#EF4444',
+  })), [plan]);
+  const mainArr: ExerciseItem[] = useMemo(() => plan.main.map((m, i) => ({
+    id: warmupArr.length + i + 1,
+    name: m.name,
+    duration: null,
+    sets: m.sets,
+    reps: m.reps,
+    icon: Dumbbell,
+    color: '#F59E0B',
+  })), [plan, warmupArr.length]);
+  const cooldownArr: ExerciseItem[] = useMemo(() => plan.cooldown.map((c, i) => ({
+    id: warmupArr.length + mainArr.length + i + 1,
+    name: c.name,
+    duration: `${c.durationSec}s`,
+    sets: 1,
+    reps: null,
+    icon: Snowflake,
+    color: '#3B82F6',
+  })), [plan, warmupArr.length, mainArr.length]);
+
   const [isActive, setIsActive] = useState(true);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [currentExercise, setCurrentExercise] = useState(3); // Start with main exercise
+  const [currentExercise, setCurrentExercise] = useState(1); // Start at first exercise
   const [currentSet, setCurrentSet] = useState(1);
   const [isRest, setIsRest] = useState(false);
-  const [restTime, setRestTime] = useState(60);
+  const [restTime, setRestTime] = useState(plan.restSeconds);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showJumpModal, setShowJumpModal] = useState(false);
   const [targetExercise, setTargetExercise] = useState({ id: 0, name: '' });
   const [skippedExercises, setSkippedExercises] = useState<number[]>([]);
+  const [restPhase, setRestPhase] = useState<RestPhase>('none');
+  const [restTargetExercise, setRestTargetExercise] = useState<number | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
+  const [totalSets, setTotalSets] = useState(1);
+  const [repsRequired, setRepsRequired] = useState(0);
 
-  const totalExercises = 9; // Total including warmup and cooldown
-  const totalSets = 3;
-  const repsRequired = 12;
-  const restDuration = 60; // 60 seconds rest
+  const totalExercises = warmupArr.length + mainArr.length + cooldownArr.length;
+  const restDuration = plan.restSeconds; // rest from plan
 
-  // Calculate next exercise
-  const nextExercise = useMemo(() => {
-    if (currentExercise >= totalExercises) return totalExercises;
-    return currentExercise + 1;
-  }, [currentExercise, totalExercises]);
+  // Helper to resolve display name list
+  const exerciseNames = useMemo(() => ([...warmupArr, ...mainArr, ...cooldownArr].map(e => e.name)), [warmupArr, mainArr, cooldownArr]);
+
+  useEffect(() => {
+    const all = [...warmupArr, ...mainArr, ...cooldownArr];
+    const ex = all[currentExercise - 1];
+    if (ex) {
+      setTotalSets(ex.sets || 1);
+      setRepsRequired(ex.reps || 0);
+    }
+  }, [currentExercise, warmupArr, mainArr, cooldownArr]);
 
   // Memoized values for performance
   const isWorkoutComplete = useMemo(() => 
@@ -687,31 +750,50 @@ export default function Capture() {
         if (isRest) {
           setRestTime((prev) => {
             if (prev <= 1) {
+              // End of rest
+              if (restPhase === 'between_exercises' && restTargetExercise != null) {
+                // Advance to target exercise after inter-exercise rest
+                setCurrentExercise(restTargetExercise);
+                setCurrentSet(1);
+              }
               setIsRest(false);
+              setRestPhase('none');
+              setRestTargetExercise(null);
               setRestTime(restDuration);
+              setSelectedExerciseId(null);
               return restDuration;
             }
             return prev - 1;
           });
         }
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isActive, isWorkoutComplete, isRest, restDuration]);
+  }, 1000);
+}
+return () => clearInterval(interval);
+  }, [isActive, isWorkoutComplete, isRest, restDuration, restPhase, restTargetExercise]);
 
   const handlePause = useCallback(() => setIsActive(false), []);
   const handleResume = useCallback(() => setIsActive(true), []);
 
   const handleExerciseTap = useCallback((exerciseId: number) => {
-    if (exerciseId !== currentExercise) {
-      const exerciseNames = [
-        "Arm Circles", "Shoulder Rolls", "Push-ups", "Dumbbell Rows", 
-        "Shoulder Press", "Tricep Dips", "Bicep Curls", "Stretching", "Deep Breathing"
-      ];
-      setTargetExercise({ id: exerciseId, name: exerciseNames[exerciseId - 1] });
-      setShowJumpModal(true);
+    setSelectedExerciseId(exerciseId);
+    // If we're resting between exercises and the user taps the upcoming exercise, start it immediately
+    if (isRest && restPhase === 'between_exercises' && restTargetExercise === exerciseId) {
+      // Equivalent to skipping rest
+      setIsRest(false);
+      setRestPhase('none');
+      setRestTargetExercise(null);
+      // If the target was previously marked skipped, unskip it now
+      setSkippedExercises((prev) => prev.filter((id) => id !== exerciseId));
+      setCurrentExercise(exerciseId);
+      setCurrentSet(1);
+      return;
     }
-  }, [currentExercise]);
+    // No-op if tapping the current exercise
+    if (exerciseId === currentExercise) return;
+    // Otherwise, confirm jump
+    setTargetExercise({ id: exerciseId, name: exerciseNames[exerciseId - 1] });
+    setShowJumpModal(true);
+  }, [currentExercise, exerciseNames, isRest, restPhase, restTargetExercise]);
 
   const handleJumpConfirm = useCallback(() => {
     // Add current exercise to skipped list if it's not completed and not already skipped
@@ -719,51 +801,85 @@ export default function Capture() {
       setSkippedExercises(prev => [...prev, currentExercise]);
     }
     
+    // Unskip the target if it was previously skipped
+    setSkippedExercises(prev => prev.filter(id => id !== targetExercise.id));
     setCurrentExercise(targetExercise.id);
     setCurrentSet(1);
     setIsRest(false);
+    setRestPhase('none');
+    setRestTargetExercise(null);
     setRestTime(restDuration);
     setIsActive(true); // Auto-unpause when jumping
     setShowJumpModal(false);
+    setSelectedExerciseId(null);
   }, [currentExercise, targetExercise, restDuration, totalExercises, skippedExercises]);
 
   const handleJumpCancel = useCallback(() => {
     setShowJumpModal(false);
+    setSelectedExerciseId(null);
   }, []);
 
   const handleCompleteSet = useCallback((exerciseId: number) => {
-    if (exerciseId === currentExercise) {
-      // Check if this is a warmup or cooldown exercise (no rest periods)
-      const isWarmupOrCooldown = exerciseId <= 2 || exerciseId >= 8;
-      
-      if (currentSet < totalSets) {
-        // Move to next set
-        setCurrentSet(currentSet + 1);
-        // Only start rest for main exercises
-        if (!isWarmupOrCooldown) {
-          setIsRest(true);
-          setRestTime(restDuration);
-        }
-      } else if (currentExercise < totalExercises) {
-        // Move to next exercise
+    if (exerciseId !== currentExercise) return;
+
+    const warmupCount = warmupArr.length;
+    const mainEnd = warmupArr.length + mainArr.length;
+    const isWarmupOrCooldown = exerciseId <= warmupCount || exerciseId > mainEnd;
+
+    if (isWarmupOrCooldown) {
+      // Warmup/Cooldown: no rest, just progress to next or finish
+      if (currentExercise < totalExercises) {
         setCurrentExercise(currentExercise + 1);
         setCurrentSet(1);
-        // Only start rest for main exercises
-        if (!isWarmupOrCooldown && currentExercise + 1 <= 7) {
-          setIsRest(true);
-          setRestTime(restDuration);
-        }
       } else {
-        // Workout complete
-        setIsCompleted(true);
+        // Mark complete by advancing beyond last exercise
+        setCurrentExercise(totalExercises + 1);
+      }
+      setSelectedExerciseId(null);
+      return;
+    }
+
+    // Main exercises
+    if (currentSet < totalSets) {
+      // Next set with rest between sets
+      setCurrentSet(currentSet + 1);
+      setIsRest(true);
+      setRestPhase('between_sets');
+      setRestTargetExercise(null);
+      setRestTime(restDuration);
+      setSelectedExerciseId(null);
+    } else {
+      // Finished this exercise
+      if (currentExercise < (warmupArr.length + mainArr.length)) {
+        // Rest before next main exercise
+        const nextId = currentExercise + 1;
+        setIsRest(true);
+        setRestPhase('between_exercises');
+        setRestTargetExercise(nextId);
+        // Ensure the next exercise is not marked as skipped if we plan to do it next
+        setSkippedExercises(prev => prev.filter(id => id !== nextId));
+        setRestTime(restDuration);
+        // Keep currentExercise pointing to the completed exercise until rest ends
+        setSelectedExerciseId(null);
+      } else {
+        // Move directly to cooldown (no rest between main -> cooldown)
+        setCurrentExercise(warmupArr.length + mainArr.length + 1);
+        setCurrentSet(1);
+        setSelectedExerciseId(null);
       }
     }
   }, [currentExercise, currentSet, totalSets, totalExercises, restDuration]);
 
   const handleSkipRest = useCallback(() => {
+    if (restPhase === 'between_exercises' && restTargetExercise != null) {
+      setCurrentExercise(restTargetExercise);
+      setCurrentSet(1);
+    }
     setIsRest(false);
+    setRestPhase('none');
+    setRestTargetExercise(null);
     setRestTime(restDuration);
-  }, [restDuration]);
+  }, [restDuration, restPhase, restTargetExercise]);
 
   const handleReset = useCallback(() => {
     setShowResetModal(true);
@@ -771,7 +887,7 @@ export default function Capture() {
 
   const confirmReset = useCallback(() => {
     setElapsedTime(0);
-    setCurrentExercise(3); // Start with main exercise
+    setCurrentExercise(1);
     setCurrentSet(1);
     setIsRest(false);
     setRestTime(restDuration);
@@ -807,37 +923,21 @@ export default function Capture() {
       };
     }
 
-    const exercises = [
-      "Arm Circles", // Warmup
-      "Shoulder Rolls", // Warmup
-      "Push-ups", // Main
-      "Dumbbell Rows", // Main
-      "Shoulder Press", // Main
-      "Tricep Dips", // Main
-      "Bicep Curls", // Main
-      "Stretching", // Cooldown
-      "Deep Breathing", // Cooldown
-    ];
-
-    const instructions = [
-      "Make circular motions with your arms to warm up your shoulders.",
-      "Roll your shoulders forward and backward to loosen up.",
-      "Keep your body in a straight line, lower your chest to the ground, then push back up.",
-      "Keep your back straight, pull the dumbbell towards your hip, then lower with control.",
-      "Press the dumbbells overhead while keeping your core engaged and back straight.",
-      "Lower your body by bending your elbows, then push back up to the starting position.",
-      "Curl the dumbbells towards your shoulders while keeping your elbows at your sides.",
-      "Stretch your muscles gently to cool down and prevent stiffness.",
-      "Take deep breaths to relax and recover from your workout.",
-    ];
+    const all = [...warmupArr, ...mainArr, ...cooldownArr];
+    const current = all[currentExercise - 1];
+    const desc = current?.duration
+      ? `Perform for ${current.duration}. Focus on form and breathing.`
+      : current?.reps
+      ? `Complete ${current.sets} sets of ${current.reps} reps with control.`
+      : 'Perform the exercise with proper form.';
 
     return {
-      name: exercises[currentExercise - 1] || "Exercise",
-      instructions: instructions[currentExercise - 1] || "Perform the exercise with proper form.",
+      name: current?.name || 'Exercise',
+      instructions: desc,
       isRest: false,
       isCompleted: false,
     };
-  }, [currentExercise, isRest, isWorkoutComplete, restDuration]);
+  }, [currentExercise, isRest, isWorkoutComplete, restDuration, warmupArr, mainArr, cooldownArr]);
 
   return (
     <View style={[tw`flex-1`, { backgroundColor: Palette.quaternary }]}>
@@ -866,7 +966,7 @@ export default function Capture() {
               {isWorkoutComplete ? 'Workout Complete!' : 'Workout in Progress'}
             </ThemedText>
             <ThemedText variant="bodyMedium" style={tw`text-white/70`}>
-              Upper Body Power
+              {plan.name}
             </ThemedText>
           </View>
           <TouchableOpacity
@@ -908,7 +1008,12 @@ export default function Capture() {
             onSkipRest={handleSkipRest}
             isRest={isRest}
             skippedExercises={skippedExercises}
-            nextExercise={nextExercise}
+            restPhase={restPhase}
+            restTargetExercise={restTargetExercise}
+            selectedExerciseId={selectedExerciseId}
+            warmupExercises={warmupArr}
+            mainExercises={mainArr}
+            cooldownExercises={cooldownArr}
           />
         )}
       </View>

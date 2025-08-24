@@ -1,11 +1,12 @@
 import { Palette } from '@/constants/Colors';
 import { tw } from '@/utils/tw';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Bookmark, Calendar, Clock, Dumbbell, Edit, Flame, Heart, LucideIcon, MoreHorizontal, Play, Target, TrendingUp, Users } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
+import { getWorkout } from '@/lib/workouts';
 
 function ExerciseCard({
   name,
@@ -257,7 +258,9 @@ function WorkoutStatusBadge({ status }: { status: 'completed' | 'paused' | 'not-
 }
 
 export default function WorkoutDetails() {
-  const [workoutStatus] = useState<'completed' | 'paused' | 'not-started'>('completed');
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const plan = useMemo(() => getWorkout(id as string | undefined), [id]);
+  const [workoutStatus] = useState<'completed' | 'paused' | 'not-started'>('not-started');
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   return (
@@ -281,14 +284,14 @@ export default function WorkoutDetails() {
           >
             <ArrowLeft size={20} color={Palette.primary} />
           </TouchableOpacity>
-          <View style={tw`flex-1`}>
-            <ThemedText variant="titleLarge" style={tw`text-white font-bold`}>
-              Upper Body Power
-            </ThemedText>
-            <ThemedText variant="bodyMedium" style={tw`text-white/70`}>
-              Upper Body • Build Muscle • Intermediate
-            </ThemedText>
-          </View>
+        <View style={tw`flex-1`}>
+          <ThemedText variant="titleLarge" style={tw`text-white font-bold`}>
+            {plan.name}
+          </ThemedText>
+          <ThemedText variant="bodyMedium" style={tw`text-white/70`}>
+            {plan.focus} • {plan.difficulty}
+          </ThemedText>
+        </View>
           <TouchableOpacity
             style={[
               tw`w-10 h-10 rounded-2xl items-center justify-center mr-2`,
@@ -323,12 +326,10 @@ export default function WorkoutDetails() {
       >
         {/* Workout Stats */}
         <WorkoutStats
-          duration="25 min"
-          difficulty="Intermediate"
-          focus="Build Muscle"
-          equipment="Dumbbells"
-          lastCompleted="2 days ago"
-          totalWorkouts={12}
+          duration={plan.duration}
+          difficulty={plan.difficulty}
+          focus={plan.focus}
+          equipment={plan.equipment || 'Bodyweight'}
         />
 
         {/* Edit Workout Button */}
@@ -372,18 +373,14 @@ export default function WorkoutDetails() {
               Warm Up
             </ThemedText>
           </View>
-          {[
-            { name: 'Arm Circles', duration: '30s', icon: Users, completed: true },
-            { name: 'Jumping Jacks', duration: '45s', icon: Users, completed: true },
-            { name: 'Push-up Hold', duration: '20s', icon: Users, completed: true },
-          ].map((exercise) => (
+          {plan.warmup.map((w, idx) => (
             <ExerciseCard
-              key={exercise.name}
-              name={exercise.name}
-              duration={exercise.duration}
-              icon={exercise.icon}
+              key={w.name + idx}
+              name={w.name}
+              duration={`${w.durationSec}s`}
+              icon={Users}
               isWarmup={true}
-              isCompleted={exercise.completed}
+              isCompleted={false}
             />
           ))}
         </View>
@@ -403,20 +400,14 @@ export default function WorkoutDetails() {
               Main Workout
             </ThemedText>
           </View>
-          {[
-            { name: 'Push-ups', sets: '3x', reps: '12 reps', icon: Dumbbell, completed: true },
-            { name: 'Dumbbell Rows', sets: '3x', reps: '10 reps each', icon: Dumbbell, completed: true },
-            { name: 'Shoulder Press', sets: '3x', reps: '8 reps', icon: Dumbbell, completed: true },
-            { name: 'Tricep Dips', sets: '3x', reps: '15 reps', icon: Dumbbell, completed: false },
-            { name: 'Bicep Curls', sets: '3x', reps: '12 reps', icon: Dumbbell, completed: false },
-          ].map((exercise) => (
+          {plan.main.map((m, idx) => (
             <ExerciseCard
-              key={exercise.name}
-              name={exercise.name}
-              sets={exercise.sets}
-              reps={exercise.reps}
-              icon={exercise.icon}
-              isCompleted={exercise.completed}
+              key={m.name + idx}
+              name={m.name}
+              sets={`${m.sets}x`}
+              reps={`${m.reps} reps`}
+              icon={Dumbbell}
+              isCompleted={false}
             />
           ))}
         </View>
@@ -436,16 +427,13 @@ export default function WorkoutDetails() {
               Cool Down
             </ThemedText>
           </View>
-          {[
-            { name: 'Child\'s Pose', duration: '30s', icon: Users, completed: false },
-            { name: 'Cobra Stretch', duration: '20s', icon: Users, completed: false },
-          ].map((exercise) => (
+          {plan.cooldown.map((c, idx) => (
             <ExerciseCard
-              key={exercise.name}
-              name={exercise.name}
-              duration={exercise.duration}
-              icon={exercise.icon}
-              isCompleted={exercise.completed}
+              key={c.name + idx}
+              name={c.name}
+              duration={`${c.durationSec}s`}
+              icon={Users}
+              isCompleted={false}
             />
           ))}
         </View>
@@ -468,8 +456,7 @@ export default function WorkoutDetails() {
             },
           ]}
           onPress={() => {
-            // Navigate to workout capture/start
-            router.push('/capture');
+            router.push({ pathname: '/capture', params: { id: plan.id } });
           }}
         >
           <View style={tw`flex-row items-center justify-center`}>
@@ -502,3 +489,4 @@ export default function WorkoutDetails() {
     </View>
   );
 }
+

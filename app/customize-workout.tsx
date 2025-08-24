@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/ThemedText';
 type WorkoutTab = 'my-workouts' | 'recent' | 'quick-start' | 'recommended';
 
 function WorkoutCard({
+  id,
   name,
   duration,
   difficulty,
@@ -20,6 +21,7 @@ function WorkoutCard({
   isFavorite = false,
   status,
 }: {
+  id?: string;
   name: string;
   duration: string;
   difficulty: string;
@@ -65,8 +67,9 @@ function WorkoutCard({
         },
       ]}
       onPress={() => {
-        // Navigate to workout details
-        router.push('/workout-details');
+        // Navigate to workout details with id
+        const slug = (id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-')).replace(/(^-|-$)/g, '');
+        router.push({ pathname: '/workout-details', params: { id: slug } });
       }}
     >
       <View
@@ -285,8 +288,8 @@ export default function CustomizeWorkout() {
   };
 
   const handleQuickWorkout = () => {
-    // Start a quick workout immediately
-    router.push('/workout-details?type=quick');
+    // Start a quick workout immediately (use a default plan)
+    router.push({ pathname: '/workout-details', params: { id: 'upper-body-power' } });
   };
 
   const renderTabContent = () => {
@@ -321,9 +324,9 @@ export default function CustomizeWorkout() {
               </TouchableOpacity>
             </View>
             {[
-              { name: 'Morning Strength', duration: '45 min', difficulty: 'Intermediate', exercises: 8, icon: Dumbbell, type: 'custom' as const },
-              { name: 'Cardio Blast', duration: '30 min', difficulty: 'Advanced', exercises: 6, icon: Heart, type: 'custom' as const },
-              { name: 'Yoga Flow', duration: '20 min', difficulty: 'Beginner', exercises: 12, icon: Users, type: 'custom' as const, isFavorite: true },
+              { id: 'morning-strength', name: 'Morning Strength', duration: '45 min', difficulty: 'Intermediate', exercises: 8, icon: Dumbbell, type: 'custom' as const },
+              { id: 'upper-body-power', name: 'Upper Body Power', duration: '35 min', difficulty: 'Intermediate', exercises: 9, icon: Dumbbell, type: 'custom' as const },
+              { id: 'yoga-flow', name: 'Yoga Flow', duration: '20 min', difficulty: 'Beginner', exercises: 12, icon: Users, type: 'custom' as const, isFavorite: true },
             ].map((w) => (
               <WorkoutCard key={w.name} {...w} />
             ))}
@@ -336,10 +339,10 @@ export default function CustomizeWorkout() {
             <ThemedText variant="titleLarge" style={tw`text-white font-bold mb-6`}>
               Recent Activity
             </ThemedText>
-                          {[
-                { name: 'Full Body HIIT', duration: '25 min', difficulty: 'Advanced', exercises: 10, icon: Flame, type: 'recent' as const, status: 'completed' as const },
-                { name: 'Core Focus', duration: '15 min', difficulty: 'Beginner', exercises: 5, icon: Dumbbell, type: 'recent' as const, status: 'completed' as const },
-                { name: 'Upper Body Power', duration: '35 min', difficulty: 'Intermediate', exercises: 9, icon: Dumbbell, type: 'recent' as const, status: 'paused' as const },
+              {[
+                { id: 'full-body-hiit', name: 'Full Body HIIT', duration: '25 min', difficulty: 'Advanced', exercises: 10, icon: Flame, type: 'recent' as const, status: 'completed' as const },
+                { id: 'core-focus', name: 'Core Focus', duration: '15 min', difficulty: 'Beginner', exercises: 5, icon: Dumbbell, type: 'recent' as const, status: 'completed' as const },
+                { id: 'upper-body-power', name: 'Upper Body Power', duration: '35 min', difficulty: 'Intermediate', exercises: 9, icon: Dumbbell, type: 'recent' as const, status: 'paused' as const },
               ].map((w) => (
               <WorkoutCard key={w.name} {...w} />
             ))}
@@ -372,7 +375,7 @@ export default function CustomizeWorkout() {
               Popular Quick Workouts
             </ThemedText>
             {[
-              { name: '5-Minute Warm Up', duration: '5 min', difficulty: 'Beginner', exercises: 3, icon: Flame, type: 'quick' as const },
+              { id: 'upper-body-power', name: '5-Minute Warm Up', duration: '5 min', difficulty: 'Beginner', exercises: 3, icon: Flame, type: 'quick' as const },
               { name: '10-Minute Cardio', duration: '10 min', difficulty: 'Beginner', exercises: 4, icon: Heart, type: 'quick' as const },
               { name: '15-Minute Strength', duration: '15 min', difficulty: 'Intermediate', exercises: 6, icon: Dumbbell, type: 'quick' as const },
             ].map((w) => (
