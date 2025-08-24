@@ -24,3 +24,17 @@ export const Colors = {
     tabIconSelected: tintColorDark,
   },
 };
+
+// Color palette for the redesigned Home screen
+// Primary:    #FFD645
+// Secondary:  #222327
+// Tertiary:   #292C3F
+// Quaternary: #151618
+// Quinary:    #FFFFFF
+export const Palette = {
+  primary: '#FFD645',
+  secondary: '#222327',
+  tertiary: '#292C3F',
+  quaternary: '#151618',
+  quinary: '#FFFFFF',
+};
