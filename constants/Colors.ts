@@ -26,16 +26,22 @@ export const Colors = {
   },
 };
 
-// Color palette for the redesigned Home screen
-// Primary:    #FFD645
-// Secondary:  #222327
-// Tertiary:   #292C3F
-// Quaternary: #151618
-// Quinary:    #FFFFFF
+// Enhanced color palette for the redesigned Home screen
+// Primary:    #FFD645 (Bright yellow for accents and CTAs)
+// Secondary:  #1A1D21 (Darker card background)
+// Tertiary:   #2A2D31 (Medium card background)
+// Quaternary: #0F1114 (Main background)
+// Quinary:    #FFFFFF (Pure white)
+// Accent:     #FF6B35 (Orange accent for highlights)
+// Success:    #10B981 (Green for completed states)
+// Warning:    #F59E0B (Amber for paused states)
 export const Palette = {
   primary: '#FFD645',
-  secondary: '#222327',
-  tertiary: '#292C3F',
-  quaternary: '#151618',
+  secondary: '#1A1D21',
+  tertiary: '#2A2D31',
+  quaternary: '#0F1114',
   quinary: '#FFFFFF',
+  accent: '#FF6B35',
+  success: '#10B981',
+  warning: '#F59E0B',
 };

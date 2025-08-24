@@ -218,5 +218,25 @@
     "width": 1080,
     "height": 2340,
     "timestamp": "2025-08-24T11:00:36.071Z"
+  },
+  {
+    "page": "home",
+    "position": "top",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-top.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756038364/screenshot-1756038363446.png",
+    "publicId": "screenshot-1756038363446",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T12:26:04.815Z"
+  },
+  {
+    "page": "home",
+    "position": "bottom",
+    "localPath": "C:\\Users\\ateterka\\andrii.teterka-app\\.appium-screens\\home-bottom.png",
+    "url": "https://res.cloudinary.com/dttqc5hjw/image/upload/v1756038367/screenshot-1756038367742.png",
+    "publicId": "screenshot-1756038367742",
+    "width": 1080,
+    "height": 2340,
+    "timestamp": "2025-08-24T12:26:08.343Z"
   }
 ]
