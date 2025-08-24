@@ -12,7 +12,8 @@
     "appium": "appium",
     "appium:launch": "node ./scripts/appium-launch.js",
     "appium:screenshot:home": "node ./scripts/appium-screenshot-home.js",
-    "appium:screenshot:customize": "node ./scripts/appium-screenshot-customize.js"
+    "appium:screenshot:customize": "node ./scripts/appium-screenshot-customize.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@expo-google-fonts/urbanist": "^0.4.1",

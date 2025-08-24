@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
+import { getExerciseStatus, getExerciseSets, shouldShowCompleteSetButton } from '@/utils/workout';
 
 function CircularTimer({ 
   elapsedTime, 
@@ -215,14 +216,6 @@ function ExerciseList({
     { id: 9, name: "Deep Breathing", duration: "30s", sets: 1, reps: null, icon: Snowflake, color: '#3B82F6' },
   ];
 
-  const getExerciseStatus = (exerciseId: number) => {
-    if (skippedExercises.includes(exerciseId)) return 'skipped';
-    if (exerciseId < currentExercise) return 'completed';
-    if (exerciseId === currentExercise) return 'current';
-    if (isRest && exerciseId === nextExercise) return 'next';
-    return 'upcoming';
-  };
-
   const getStatusColor = (status: string, exerciseColor: string) => {
     switch (status) {
       case 'completed': return '#10B981'; // Green for completed
@@ -244,17 +237,24 @@ function ExerciseList({
   };
 
   const renderExerciseItem = (exercise: any, index: number) => {
-    const status = getExerciseStatus(exercise.id);
+    const status = getExerciseStatus(
+      exercise.id,
+      currentExercise,
+      isRest,
+      nextExercise,
+      skippedExercises
+    );
     const isCurrent = status === 'current';
     const isNext = status === 'next';
     const isHighlighted = isCurrent || isNext;
-    
+
     // Determine if exercise should show complete button
-    const canComplete = isCurrent && exercise.sets > 1 && !isRest;
+    const canComplete = shouldShowCompleteSetButton(
+      exercise.id,
+      currentExercise,
+      isRest
+    );
     const canSkipRest = isCurrent && isRest;
-    
-    // Determine if exercise should have rest periods (only main exercises)
-    const hasRestPeriods = exercise.id >= 3 && exercise.id <= 7;
     
     return (
       <TouchableOpacity
@@ -443,19 +443,15 @@ function ExerciseList({
       {/* Exercise List */}
       <ScrollView style={tw`max-h-80`} showsVerticalScrollIndicator={false}>
         {/* Warm Up Section */}
-        <TouchableOpacity
-          onPress={() => onExerciseTap(1)}
-          activeOpacity={0.8}
-          style={tw`mb-6`}
-        >
+        <View style={tw`mb-6`}>
           <View style={tw`flex-row items-center mb-3`}>
             <Flame size={18} color="#EF4444" style={tw`mr-2`} />
-            <ThemedText variant="titleMedium" style={[tw`font-bold`, { color: '#EF4444' }]}>
+            <ThemedText variant="titleMedium" style={[tw`font-bold`, { color: '#EF4444' }]}> 
               Warm Up
             </ThemedText>
           </View>
           {warmupExercises.map((exercise, index) => renderExerciseItem(exercise, index))}
-        </TouchableOpacity>
+        </View>
 
         {/* Main Exercises Section */}
         <View style={tw`mb-6`}>
@@ -469,19 +465,15 @@ function ExerciseList({
         </View>
 
         {/* Cool Down Section */}
-        <TouchableOpacity
-          onPress={() => onExerciseTap(8)}
-          activeOpacity={0.8}
-          style={tw`mb-6`}
-        >
+        <View style={tw`mb-6`}>
           <View style={tw`flex-row items-center mb-3`}>
             <Snowflake size={18} color="#3B82F6" style={tw`mr-2`} />
-            <ThemedText variant="titleMedium" style={[tw`font-bold`, { color: '#3B82F6' }]}>
+            <ThemedText variant="titleMedium" style={[tw`font-bold`, { color: '#3B82F6' }]}> 
               Cool Down
             </ThemedText>
           </View>
           {cooldownExercises.map((exercise, index) => renderExerciseItem(exercise, index))}
-        </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -524,7 +516,7 @@ function ConfirmJumpModal({
             Jump to Exercise?
           </ThemedText>
           <ThemedText variant="bodyMedium" style={tw`text-white/70 mb-6 text-center`}>
-            Are you sure you want to jump to "{targetExercise}"? This will skip the current exercise.
+            Are you sure you want to jump to &quot;{targetExercise}&quot;? This will skip the current exercise.
           </ThemedText>
           
           <View style={tw`flex-row gap-3`}>
@@ -654,7 +646,6 @@ export default function Capture() {
   const [currentSet, setCurrentSet] = useState(1);
   const [isRest, setIsRest] = useState(false);
   const [restTime, setRestTime] = useState(60);
-  const [isCompleted, setIsCompleted] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showJumpModal, setShowJumpModal] = useState(false);
   const [targetExercise, setTargetExercise] = useState({ id: 0, name: '' });
@@ -735,8 +726,9 @@ export default function Capture() {
     if (exerciseId === currentExercise) {
       // Check if this is a warmup or cooldown exercise (no rest periods)
       const isWarmupOrCooldown = exerciseId <= 2 || exerciseId >= 8;
-      
-      if (currentSet < totalSets) {
+      const exerciseSets = getExerciseSets(exerciseId, totalSets);
+
+      if (currentSet < exerciseSets) {
         // Move to next set
         setCurrentSet(currentSet + 1);
         // Only start rest for main exercises
@@ -755,7 +747,8 @@ export default function Capture() {
         }
       } else {
         // Workout complete
-        setIsCompleted(true);
+        setCurrentExercise(totalExercises + 1);
+        setIsRest(false);
       }
     }
   }, [currentExercise, currentSet, totalSets, totalExercises, restDuration]);
@@ -775,7 +768,6 @@ export default function Capture() {
     setCurrentSet(1);
     setIsRest(false);
     setRestTime(restDuration);
-    setIsCompleted(false);
     setSkippedExercises([]);
     setShowResetModal(false);
   }, [restDuration]);

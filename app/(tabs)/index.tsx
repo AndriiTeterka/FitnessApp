@@ -73,7 +73,6 @@ function RecentWorkout({
   status: string;
 }) {
   const isCompleted = status === 'COMPLETED';
-  const isPaused = status === 'PAUSED';
   
   return (
     <View
@@ -183,7 +182,7 @@ export default function HomeScreen() {
               variant="titleLarge"
               style={tw`text-white font-bold`}
             >
-              Today's Progress
+              Today&apos;s Progress
             </ThemedText>
           </View>
           <View style={tw`flex-row gap-4`}>
