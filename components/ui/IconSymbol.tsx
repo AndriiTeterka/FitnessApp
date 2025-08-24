@@ -21,8 +21,8 @@ const MAPPING = {
   // Additional commonly used symbols in this app
   'person.circle': 'person',
   'figure.strengthtraining.traditional': 'fitness-center',
-  'explore': 'explore',
-  'search': 'search',
+  'safari.fill': 'explore',
+  'magnifyingglass': 'search',
 } as IconMapping;
 
 /**

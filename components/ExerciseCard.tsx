@@ -18,8 +18,6 @@ type Exercise = {
 export function ExerciseCard({ exercise, onTagPress, selectedMuscles, onFilter, selectedDifficulty, trackingOnly }: { exercise: Exercise; onTagPress?: (tag: string) => void; selectedMuscles?: string[]; onFilter?: (f: { difficulty?: string; tracking?: boolean }) => void; selectedDifficulty?: 'Beginner' | 'Intermediate' | 'Advanced' | 'All'; trackingOnly?: boolean }) {
   const router = useRouter();
   const diff = exercise.difficulty as 'Beginner' | 'Intermediate' | 'Advanced';
-  const color = diff === 'Beginner' ? 'bg-green-100 text-green-800' : diff === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800';
-  const [bg, text] = color.split(' ');
   const isDiffActive = selectedDifficulty === diff;
 
   return (

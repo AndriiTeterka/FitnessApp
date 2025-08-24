@@ -1,5 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
-import tw from '@/utils/tw';
+import { tw } from '@/utils/tw';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
 
