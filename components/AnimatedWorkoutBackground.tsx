@@ -1,88 +1,94 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Svg, { Path, Defs, G, Filter, FeGaussianBlur } from 'react-native-svg';
 import { Palette } from '@/constants/Colors';
 
 type Props = {
   intensity?: 'calm' | 'active';
+  activeColor?: string; // color for current workout stage
 };
 
-function GlowBlob({ size, color, opacity = 0.35 }: { size: number; color: string; opacity?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}> 
-      <Defs>
-        <RadialGradient id="grad" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor={color} stopOpacity={opacity} />
-          <Stop offset="100%" stopColor={color} stopOpacity={0} />
-        </RadialGradient>
-      </Defs>
-      <Rect x="0" y="0" width={size} height={size} fill="url(#grad)" />
-    </Svg>
-  );
-}
+export default function AnimatedWorkoutBackground({ intensity = 'active', activeColor = Palette.primary }: Props) {
+  // Base/overlay colors for crossfade
+  const [baseColor, setBaseColor] = useState(activeColor);
+  const [overlayColor, setOverlayColor] = useState(activeColor);
+  const overlayOpacity = useSharedValue(0);
 
-export function AnimatedWorkoutBackground({ intensity = 'active' }: Props) {
-  const dur = intensity === 'active' ? 7000 : 11000;
-  const range = intensity === 'active' ? 18 : 10;
-
-  const t1 = useSharedValue(0);
-  const t2 = useSharedValue(0);
-  const t3 = useSharedValue(0);
-
+  // Crossfade to target color
   useEffect(() => {
-    t1.value = withRepeat(withTiming(1, { duration: dur, easing: Easing.inOut(Easing.quad) }), -1, true);
-    t2.value = withRepeat(withTiming(1, { duration: dur + 1200, easing: Easing.inOut(Easing.cubic) }), -1, true);
-    t3.value = withRepeat(withTiming(1, { duration: dur - 800, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, [dur, t1, t2, t3]);
+    if (activeColor === baseColor) return;
+    setOverlayColor(activeColor);
+    overlayOpacity.value = 0;
+    overlayOpacity.value = withTiming(1, { duration: 650, easing: Easing.inOut(Easing.cubic) }, (finished) => {
+      if (finished) {
+        runOnJS(setBaseColor)(activeColor);
+        // Fade overlay away on next frame to avoid flicker
+        requestAnimationFrame(() => {
+          overlayOpacity.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.quad) });
+        });
+      }
+    });
+  }, [activeColor, baseColor, overlayOpacity]);
 
-  const blob1 = useAnimatedStyle(() => {
-    const tx = interpolate(t1.value, [0, 1], [-range, range]);
-    const ty = interpolate(t1.value, [0, 1], [range, -range]);
-    const scale = interpolate(t1.value, [0, 1], [1, 1.08]);
-    return { transform: [{ translateX: tx }, { translateY: ty }, { scale }] };
-  });
+  const baseAnim = useAnimatedStyle(() => ({ opacity: 1 - overlayOpacity.value }));
+  const overlayAnim = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
 
-  const blob2 = useAnimatedStyle(() => {
-    const tx = interpolate(t2.value, [0, 1], [range, -range]);
-    const ty = interpolate(t2.value, [0, 1], [range * 0.8, -range * 0.8]);
-    const scale = interpolate(t2.value, [0, 1], [1.02, 0.95]);
-    return { transform: [{ translateX: tx }, { translateY: ty }, { scale }] };
-  });
-
-  const blob3 = useAnimatedStyle(() => {
-    const tx = interpolate(t3.value, [0, 1], [-range * 0.6, range * 0.6]);
-    const ty = interpolate(t3.value, [0, 1], [-range * 0.6, range * 0.6]);
-    const scale = interpolate(t3.value, [0, 1], [0.98, 1.06]);
-    return { transform: [{ translateX: tx }, { translateY: ty }, { scale }] };
-  });
+  // Subtle breathing highlight (stationary figure)
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(1, { duration: 4200, easing: Easing.inOut(Easing.quad) }), -1, true);
+  }, [pulse]);
+  const pulseAnim = useAnimatedStyle(() => ({ opacity: 0.015 + 0.025 * pulse.value }));
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {/* subtle vignette base */}
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.25)' }]} />
+      {/* Subtle vignette */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.28)' }]} />
 
-      {/* animated glow blobs */}
-      <Animated.View style={[styles.blobBase, { top: -80, left: -60 }, blob1]}>
-        <GlowBlob size={360} color={Palette.primary} opacity={0.35} />
+      {/* Base hourglass figure */}
+      <Animated.View style={[StyleSheet.absoluteFill, baseAnim]}>
+        <Hourglass color={baseColor} idSuffix="base" />
       </Animated.View>
 
-      <Animated.View style={[styles.blobBase, { bottom: -60, right: -60 }, blob2]}>
-        <GlowBlob size={320} color={Palette.accent} opacity={0.30} />
+      {/* Overlay hourglass for crossfade */}
+      <Animated.View style={[StyleSheet.absoluteFill, overlayAnim]}>
+        <Hourglass color={overlayColor} idSuffix="overlay" />
       </Animated.View>
 
-      <Animated.View style={[styles.blobBase, { top: 220, right: -40 }, blob3]}>
-        <GlowBlob size={280} color={Palette.success} opacity={0.28} />
+      {/* Soft breathing highlight */}
+      <Animated.View style={[StyleSheet.absoluteFill, pulseAnim]}>
+        <Hourglass color="#FFFFFF" onlyCore idSuffix="pulse" />
       </Animated.View>
+
+      {/* Global blur for the glow effect */}
+      <BlurView pointerEvents="none" style={StyleSheet.absoluteFill} intensity={84} tint="dark" />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  blobBase: {
-    position: 'absolute',
-  },
-});
-
-export default AnimatedWorkoutBackground;
-
+function Hourglass({ color, onlyCore = false, idSuffix }: { color: string; onlyCore?: boolean; idSuffix: string }) {
+  return (
+    <Svg width="100%" height="100%" viewBox="0 0 400 800" preserveAspectRatio="none">
+      <Defs>
+        {/* Large blur area to avoid clipping */}
+        <Filter id={`hg-blur-${idSuffix}`} x="-50%" y="-50%" width="200%" height="200%">
+          <FeGaussianBlur stdDeviation="60" />
+        </Filter>
+      </Defs>
+      <G filter={`url(#hg-blur-${idSuffix})`}>
+        {/* central hourglass body (wider bulbs, narrow waist) */}
+        <Path d="M0,-40 C220,180 220,620 0,840 L400,840 C180,620 180,180 400,-40 Z" fill={color} opacity={onlyCore ? 1 : 0.36} />
+        {onlyCore ? null : (
+          <>
+            {/* inner layer for glow depth */}
+            <Path d="M0,40 C210,230 210,570 0,760 L400,760 C190,570 190,230 400,40 Z" fill={color} opacity={0.24} />
+            {/* outer haze */}
+            <Path d="M0,-80 C240,160 240,640 0,880 L400,880 C160,640 160,160 400,-80 Z" fill={color} opacity={0.18} />
+          </>
+        )}
+      </G>
+    </Svg>
+  );
+}

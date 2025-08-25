@@ -940,9 +940,18 @@ return () => clearInterval(interval);
     };
   }, [currentExercise, isRest, isWorkoutComplete, restDuration, warmupArr, mainArr, cooldownArr]);
 
+  const stageColor = useMemo(() => {
+    if (isRest) return '#FFFFFF';
+    const warmupCount = warmupArr.length;
+    const mainEnd = warmupArr.length + mainArr.length;
+    if (currentExercise <= warmupCount) return '#EF4444';
+    if (currentExercise <= mainEnd) return '#F59E0B';
+    return '#3B82F6';
+  }, [isRest, currentExercise, warmupArr.length, mainArr.length]);
+
   return (
     <View style={[tw`flex-1`, { backgroundColor: Palette.quaternary }]}>
-      <AnimatedWorkoutBackground intensity="active" />
+      <AnimatedWorkoutBackground intensity={isActive ? 'active' : 'calm'} activeColor={stageColor} />
       {/* Header */}
       <View style={tw`p-6 pb-4 pt-8`}>
         <View style={tw`flex-row items-center justify-between mb-4`}>
