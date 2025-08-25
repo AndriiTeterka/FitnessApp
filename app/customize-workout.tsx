@@ -7,6 +7,7 @@ import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
+import { recentWorkouts } from '@/lib/recentWorkouts';
 
 type WorkoutTab = 'my-workouts' | 'recent' | 'quick-start' | 'recommended';
 
@@ -339,13 +340,19 @@ export default function CustomizeWorkout() {
             <ThemedText variant="titleLarge" style={tw`text-white font-bold mb-6`}>
               Recent Activity
             </ThemedText>
-              {[
-                { id: 'full-body-hiit', name: 'Full Body HIIT', duration: '25 min', difficulty: 'Advanced', exercises: 10, icon: Flame, type: 'recent' as const, status: 'completed' as const },
-                { id: 'core-focus', name: 'Core Focus', duration: '15 min', difficulty: 'Beginner', exercises: 5, icon: Dumbbell, type: 'recent' as const, status: 'completed' as const },
-                { id: 'upper-body-power', name: 'Upper Body Power', duration: '35 min', difficulty: 'Intermediate', exercises: 9, icon: Dumbbell, type: 'recent' as const, status: 'paused' as const },
-              ].map((w) => (
-              <WorkoutCard key={w.name} {...w} />
-            ))}
+              {recentWorkouts.map((w) => (
+                <WorkoutCard
+                  key={w.id}
+                  id={w.id}
+                  name={w.name}
+                  duration={w.duration}
+                  difficulty={w.difficulty}
+                  exercises={w.exercises}
+                  icon={w.id === 'full-body-hiit' ? Flame : Dumbbell}
+                  type={'recent'}
+                  status={w.status}
+                />
+              ))}
           </View>
         );
 

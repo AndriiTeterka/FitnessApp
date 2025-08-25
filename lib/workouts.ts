@@ -60,9 +60,59 @@ const morningStrength: WorkoutPlan = {
   ],
 };
 
+const fullBodyHiit: WorkoutPlan = {
+  id: 'full-body-hiit',
+  name: 'Full Body HIIT',
+  duration: '25 min',
+  difficulty: 'Advanced',
+  focus: 'Full Body',
+  equipment: 'Bodyweight',
+  restSeconds: 30,
+  warmup: [
+    { name: 'High Knees', durationSec: 30 },
+    { name: 'Arm Swings', durationSec: 30 },
+  ],
+  main: [
+    { name: 'Burpees', sets: 3, reps: 12 },
+    { name: 'Jump Squats', sets: 3, reps: 15 },
+    { name: 'Mountain Climbers', sets: 3, reps: 20 },
+    { name: 'Plank Jacks', sets: 3, reps: 20 },
+  ],
+  cooldown: [
+    { name: 'Child’s Pose', durationSec: 30 },
+    { name: 'Hamstring Stretch', durationSec: 30 },
+  ],
+};
+
+const coreFocus: WorkoutPlan = {
+  id: 'core-focus',
+  name: 'Core Focus',
+  duration: '15 min',
+  difficulty: 'Beginner',
+  focus: 'Core',
+  equipment: 'Bodyweight',
+  restSeconds: 45,
+  warmup: [
+    { name: 'Cat-Cow', durationSec: 30 },
+    { name: 'Torso Twists', durationSec: 30 },
+  ],
+  main: [
+    { name: 'Crunches', sets: 3, reps: 15 },
+    { name: 'Russian Twists', sets: 3, reps: 20 },
+    { name: 'Plank', sets: 3, reps: 30 }, // reps as seconds
+    { name: 'Leg Raises', sets: 3, reps: 12 },
+  ],
+  cooldown: [
+    { name: 'Cobra Stretch', durationSec: 30 },
+    { name: 'Child’s Pose', durationSec: 30 },
+  ],
+};
+
 export const workouts: Record<string, WorkoutPlan> = {
   [upperBodyPower.id]: upperBodyPower,
   [morningStrength.id]: morningStrength,
+  [fullBodyHiit.id]: fullBodyHiit,
+  [coreFocus.id]: coreFocus,
 };
 
 export function getWorkout(id?: string): WorkoutPlan {
@@ -70,4 +120,3 @@ export function getWorkout(id?: string): WorkoutPlan {
   // Fallback to upper body if unknown
   return upperBodyPower;
 }
-

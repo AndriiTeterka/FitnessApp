@@ -1,4 +1,4 @@
-import { Palette } from '@/constants/Colors';
+﻿import { Palette } from '@/constants/Colors';
 import { tw } from '@/utils/tw';
 import { Link, router } from 'expo-router';
 import { Clock3, Dumbbell, Flame, Heart, LucideIcon, Play, TrendingUp } from 'lucide-react-native';
@@ -6,6 +6,7 @@ import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
+import { recentWorkouts } from '@/lib/recentWorkouts';
 
 function StatCard({
   label,
@@ -67,16 +68,18 @@ function RecentWorkout({
   name,
   meta,
   status,
+  onPress,
 }: {
   name: string;
   meta: string;
   status: string;
+  onPress?: () => void;
 }) {
   const isCompleted = status === 'COMPLETED';
   const isPaused = status === 'PAUSED';
   
   return (
-    <View
+    <TouchableOpacity
       style={[
         tw`flex-row items-center p-5 rounded-3xl mb-4`,
         { 
@@ -88,6 +91,7 @@ function RecentWorkout({
           elevation: 4,
         },
       ]}
+      onPress={onPress}
     >
       <View
         style={[
@@ -137,7 +141,7 @@ function RecentWorkout({
           {status}
         </ThemedText>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -225,12 +229,16 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </Link>
           </View>
-          {[
-            { name: 'Full Body Strength', meta: 'Apr 22 • 30 min • 320 cal', status: 'COMPLETED' },
-            { name: 'HIIT Cardio', meta: 'Apr 20 • 20 min • 280 cal', status: 'COMPLETED' },
-            { name: 'Morning Yoga', meta: 'Apr 18 • 10 min • 50 cal', status: 'PAUSED' },
-          ].map((w) => (
-            <RecentWorkout key={w.name} {...w} />
+          {recentWorkouts.map((w) => (
+            <RecentWorkout
+              key={w.id}
+              name={w.name}
+              meta={w.duration + ' \u2022 ' + w.exercises + ' exercises'}
+              status={w.status === 'completed' ? 'COMPLETED' : 'PAUSED'}
+              onPress={() => {
+                router.push({ pathname: '/workout-details', params: { id: w.id } });
+              }}
+            />
           ))}
         </View>
 
