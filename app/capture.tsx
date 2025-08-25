@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
+import AnimatedWorkoutBackground from '@/components/AnimatedWorkoutBackground';
 import { getWorkout } from '@/lib/workouts';
 
 function CircularTimer({ 
@@ -941,6 +942,7 @@ return () => clearInterval(interval);
 
   return (
     <View style={[tw`flex-1`, { backgroundColor: Palette.quaternary }]}>
+      <AnimatedWorkoutBackground intensity="active" />
       {/* Header */}
       <View style={tw`p-6 pb-4 pt-8`}>
         <View style={tw`flex-row items-center justify-between mb-4`}>
